@@ -45,7 +45,12 @@ class ApiDocsAdminTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['views', 'apigee_api_catalog', 'block', 'field_ui'];
+  protected static $modules = [
+    'views',
+    'apigee_api_catalog',
+    'block',
+    'field_ui'
+  ];
 
   /**
    * A user with permission to administer site configuration.
@@ -68,7 +73,7 @@ class ApiDocsAdminTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Add the system menu blocks to appropriate regions.
@@ -97,8 +102,8 @@ class ApiDocsAdminTest extends BrowserTestBase {
     $assert->pageTextContains('There are no API docs yet.');
 
     // User can add entity content.
-    $assert->linkExists('Add API Doc');
-    $this->clickLink('Add API Doc');
+    $assert->linkExists('OpenAPI');
+    $this->clickLink('OpenAPI');
 
     // Fields should have proper defaults.
     $assert->fieldValueEquals('title[0][value]', '');
@@ -107,8 +112,8 @@ class ApiDocsAdminTest extends BrowserTestBase {
     // Create a new spec in site.
     $file = File::create([
       'uid' => $this->adminUser->id(),
-      'filename' => 'specA.yml',
-      'uri' => 'public://specA.yml',
+      'filename' => 'specA.yaml',
+      'uri' => 'public://specA.yaml',
       'filemime' => 'application/octet-stream',
       'created' => 1,
       'changed' => 1,
@@ -128,11 +133,19 @@ class ApiDocsAdminTest extends BrowserTestBase {
     $page->fillField('field_apidoc_spec_file_source', 'file');
 
     // Can't use drupalPostForm() to set hidden fields.
-    $this->getSession()->getPage()->find('css', 'input[name="field_apidoc_spec[0][fids]"]')->setValue($file->id());
+    $this->getSession()->getPage()->find(
+      'css', 'input[name="field_apidoc_spec[0][fids]"]'
+    )->setValue($file->id());
     $this->getSession()->getPage()->pressButton(t('Save'));
 
     $assert->statusCodeEquals(200);
-    $assert->pageTextContains(new FormattableMarkup('API Doc @name has been created.', ['@name' => $random_name]));
+    $assert->pageTextContains(new FormattableMarkup(
+        'OpenAPI Doc @name has been created.',
+        [
+          '@name' => $random_name
+        ]
+      )
+    );
 
     // Entity listed.
     $assert->linkExists($random_name);
@@ -146,7 +159,7 @@ class ApiDocsAdminTest extends BrowserTestBase {
     // Edit form should have proper values.
     $assert->fieldValueEquals('title[0][value]', $random_name);
     $assert->fieldValueEquals('body[0][value]', $random_description);
-    $assert->linkExists('specA.yml');
+    $assert->linkExists('specA.yaml');
 
     // Delete the entity.
     $this->clickLink('Delete');

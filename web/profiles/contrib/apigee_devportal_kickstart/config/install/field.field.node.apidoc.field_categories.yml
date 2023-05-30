@@ -10,7 +10,7 @@ field_name: field_categories
 entity_type: node
 bundle: apidoc
 label: Categories
-description: 'The API Docs categories.'
+description: 'The OpenAPI Docs categories.'
 required: false
 translatable: false
 default_value: {  }

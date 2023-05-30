@@ -169,13 +169,14 @@ class Client implements ClientInterface
     /**
      * {@inheritdoc}
      */
-    public function getUserAgent(): string
+    public function getUserAgent(): ?string
     {
+        $user_agent = $this->getClientVersion() . '; PHP/' . PHP_VERSION;
         if (null !== $this->userAgentPrefix) {
-            return sprintf("{$this->userAgentPrefix} ({$this->getClientVersion()})");
+            return $this->userAgentPrefix . ' (' . $user_agent . ')';
         }
 
-        return $this->getClientVersion();
+        return $user_agent;
     }
 
     /**
@@ -183,7 +184,7 @@ class Client implements ClientInterface
      */
     public function getClientVersion(): string
     {
-        return sprintf('Apigee Edge PHP Client %s', self::VERSION);
+        return sprintf('Apigee Edge PHP Client/%s', self::VERSION);
     }
 
     /**
@@ -313,7 +314,8 @@ class Client implements ClientInterface
         ];
 
         if (null !== $this->retryPluginConfig) {
-            if (!isset($this->retryPluginConfig['exception_decider'])) {
+            $retryPluginConfig = $this->retryPluginConfig;
+            if (!isset($retryPluginConfig['exception_decider'])) {
                 $this->retryPluginConfig['exception_decider'] = function (RequestInterface $request, Exception $e) {
                     // When Oauth authentication is in use retry decider should ignore
                     // OauthAuthenticationException.

@@ -37,7 +37,7 @@ class CustomTest extends OrderKernelTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'commerce_tax',
   ];
 
@@ -136,13 +136,13 @@ class CustomTest extends OrderKernelTestBase {
     $this->assertCount(1, $order->collectAdjustments());
 
     // Serbian store and US customer.
-    $order = $this->buildOrder('US', 'RS');
+    $order = $this->buildOrder('US', 'RS', ['RS']);
     $this->assertTrue($plugin->applies($order));
     $plugin->apply($order);
     $this->assertCount(0, $order->collectAdjustments());
 
     // Serbian store and customer.
-    $order = $this->buildOrder('RS', 'RS');
+    $order = $this->buildOrder('RS', 'RS', ['RS']);
     $this->assertTrue($plugin->applies($order));
     $plugin->apply($order);
     $this->assertCount(1, $order->collectAdjustments());
@@ -154,7 +154,7 @@ class CustomTest extends OrderKernelTestBase {
     $adjustment = reset($adjustments);
     $this->assertEquals(new Price('12.40', 'USD'), $order_item->getUnitPrice());
     $this->assertEquals('tax', $adjustment->getType());
-    $this->assertEquals(t('VAT'), $adjustment->getLabel());
+    $this->assertEquals($this->t('VAT'), $adjustment->getLabel());
     $this->assertEquals(new Price('2.07', 'USD'), $adjustment->getAmount());
     $this->assertEquals('0.2', $adjustment->getPercentage());
     $this->assertEquals('serbian_vat|default|standard', $adjustment->getSourceId());
@@ -213,7 +213,7 @@ class CustomTest extends OrderKernelTestBase {
     $this->assertEquals(new Price('9.33', 'USD'), $order_item->getAdjustedUnitPrice());
     $this->assertCount(2, $adjustments);
     $this->assertEquals('tax', $tax_adjustment->getType());
-    $this->assertEquals(t('VAT'), $tax_adjustment->getLabel());
+    $this->assertEquals($this->t('VAT'), $tax_adjustment->getLabel());
     $this->assertEquals(new Price('1.56', 'USD'), $tax_adjustment->getAmount());
     $this->assertEquals('0.2', $tax_adjustment->getPercentage());
 
@@ -238,7 +238,7 @@ class CustomTest extends OrderKernelTestBase {
     $this->assertEquals(new Price('11.40', 'USD'), $order_item->getAdjustedUnitPrice());
     $this->assertCount(2, $adjustments);
     $this->assertEquals('tax', $tax_adjustment->getType());
-    $this->assertEquals(t('VAT'), $tax_adjustment->getLabel());
+    $this->assertEquals($this->t('VAT'), $tax_adjustment->getLabel());
     $this->assertEquals(new Price('1.90', 'USD'), $tax_adjustment->getAmount());
     $this->assertEquals('0.2', $tax_adjustment->getPercentage());
 
@@ -266,7 +266,7 @@ class CustomTest extends OrderKernelTestBase {
     $this->assertEquals(new Price('11.20', 'USD'), $order_item->getAdjustedUnitPrice());
     $this->assertCount(2, $adjustments);
     $this->assertEquals('tax', $tax_adjustment->getType());
-    $this->assertEquals(t('VAT'), $tax_adjustment->getLabel());
+    $this->assertEquals($this->t('VAT'), $tax_adjustment->getLabel());
     $this->assertEquals(new Price('1.87', 'USD'), $tax_adjustment->getAmount());
     $this->assertEquals('0.2', $tax_adjustment->getPercentage());
 
@@ -294,7 +294,7 @@ class CustomTest extends OrderKernelTestBase {
     $this->assertEquals(new Price('9.13', 'USD'), $order_item->getAdjustedUnitPrice());
     $this->assertCount(2, $adjustments);
     $this->assertEquals('tax', $tax_adjustment->getType());
-    $this->assertEquals(t('VAT'), $tax_adjustment->getLabel());
+    $this->assertEquals($this->t('VAT'), $tax_adjustment->getLabel());
     $this->assertEquals(new Price('1.52', 'USD'), $tax_adjustment->getAmount());
     $this->assertEquals('0.2', $tax_adjustment->getPercentage());
   }

@@ -7,6 +7,7 @@ use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Messenger\MessengerInterface;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\fontawesome\Plugin\Field\FieldWidget\FontAwesomeIconWidget;
 use Drupal\fontawesome_iconpicker_widget\IconManagerServiceInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -50,11 +51,10 @@ class FontAwesomeIconpickerWidget extends FontAwesomeIconWidget {
   /**
    * {@inheritdoc}
    */
-  public function __construct($plugin_id, $plugin_definition, FieldDefinitionInterface $field_definition, array $settings, array $third_party_settings, ConfigFactory $config_factory, MessengerInterface $messenger, IconManagerServiceInterface $icon_manager, FontAwesomeManagerInterface $font_awesome_manager) {
-    parent::__construct($plugin_id, $plugin_definition, $field_definition, $settings, $third_party_settings, $config_factory, $font_awesome_manager);
+  public function __construct($plugin_id, $plugin_definition, FieldDefinitionInterface $field_definition, array $settings, array $third_party_settings, ConfigFactory $config_factory, FontAwesomeManagerInterface $font_awesome_manager, AccountInterface $current_user, MessengerInterface $messenger, IconManagerServiceInterface $icon_manager) {
+    parent::__construct($plugin_id, $plugin_definition, $field_definition, $settings, $third_party_settings, $config_factory, $font_awesome_manager, $current_user);
     $this->messenger = $messenger;
     $this->iconManager = $icon_manager;
-    $this->fontAwesomeManager = $font_awesome_manager;
   }
 
   /**
@@ -68,9 +68,10 @@ class FontAwesomeIconpickerWidget extends FontAwesomeIconWidget {
       $configuration['settings'],
       $configuration['third_party_settings'],
       $container->get('config.factory'),
+      $container->get('fontawesome.font_awesome_manager'),
+      $container->get('current_user'),
       $container->get('messenger'),
-      $container->get('fontawesome_iconpicker_widget.icon_manager'),
-      $container->get('fontawesome.font_awesome_manager')
+      $container->get('fontawesome_iconpicker_widget.icon_manager')
     );
   }
 
@@ -123,11 +124,12 @@ class FontAwesomeIconpickerWidget extends FontAwesomeIconWidget {
       '#default_value' => $icon_style_default_value,
     ];
     // Get current settings.
-    $iconSettings = unserialize($items[$delta]->get('settings')->getValue());
+    $settings = $items[$delta]->get('settings')->getValue() ?? '';
+    $iconSettings = unserialize($settings);
 
     $mask_icon = '';
     $mask_style = NULL;
-    if (isset($iconSettings['masking']['mask']) && isset($iconSettings['masking']['style'])) {
+    if ((isset($iconSettings['masking']['mask']) && $iconSettings['masking']['mask'] !== '') && (isset($iconSettings['masking']['style']) && $iconSettings['masking']['style'] !== '')) {
       $mask_style = $iconSettings['masking']['style'];
       $mask_icon = $mask_style . ' fa-' . $iconSettings['masking']['mask'];
     }
@@ -157,6 +159,7 @@ class FontAwesomeIconpickerWidget extends FontAwesomeIconWidget {
   public static function validateIconName($element, FormStateInterface $form_state) {
     $iconManager = \Drupal::service('fontawesome_iconpicker_widget.icon_manager');
     $fontAwesomeManager = \Drupal::service('fontawesome.font_awesome_manager');
+    $configuration_settings = \Drupal::config('fontawesome.settings');
     $value = $element['#value'];
     if (strlen($value) == 0) {
       $form_state->setValueForElement($element, '');
@@ -166,7 +169,7 @@ class FontAwesomeIconpickerWidget extends FontAwesomeIconWidget {
     $icon_base = $iconManager->getIconBaseNameFromClass($value);
     $iconData = $fontAwesomeManager->getIconMetadata($icon_base);
 
-    if (!isset($iconData['name'])) {
+    if (!isset($iconData['name']) && !$configuration_settings->get('bypass_validation')) {
       $form_state->setError($element, t("Invalid icon"));
     }
   }
@@ -178,9 +181,11 @@ class FontAwesomeIconpickerWidget extends FontAwesomeIconWidget {
     // Loop over each item and set the data properly.
     foreach ($values as &$item) {
       // Reset $item['icon_name'] to the base name.
-      $class = $item['icon_name'];
-      $item['icon_name'] = $this->iconManager->getIconBaseNameFromClass($class);
-      $item['style'] = $this->iconManager->getIconPrefixFromClass($class);
+      if (!empty($item['icon_name'])) {
+        $class = $item['icon_name'];
+        $item['icon_name'] = $this->iconManager->getIconBaseNameFromClass($class);
+        $item['style'] = $this->iconManager->getIconPrefixFromClass($class);
+      }
       unset($item['settings']['style']);
 
       if (!empty($item['settings']['masking']['mask'])) {

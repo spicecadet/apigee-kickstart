@@ -411,8 +411,7 @@ function apigee_edge_entity_view(array &$build, EntityInterface $entity, EntityV
           '#app' => $entity,
           '#attributes' => [
             'class' => 'items--inline',
-            'data-app' => $entity->getName(),
-            'data-team' => isset($team_app_name) ? $team_app_name : '',
+            'data-app-keys-url' => $entity->toUrl('api-keys', ['absolute' => TRUE])->toString(FALSE),
             'data-app-container-index' => $index,
           ],
         ] + $defaults;
@@ -448,6 +447,8 @@ function apigee_edge_entity_view(array &$build, EntityInterface $entity, EntityV
           ],
         ],
       ]))->toRenderable();
+     
+     $build['#attached']['library'][] = 'core/drupal.dialog.ajax';
     }
   }
 
@@ -498,7 +499,9 @@ function apigee_edge_api_product_access(EntityInterface $entity, $operation, Acc
   $result = AccessResult::allowedIfHasPermission($account, 'bypass api product access control');
   if ($result->isNeutral()) {
     // Attribute may not exists but in that case it means public.
-    $product_visibility = $entity->getAttributeValue('access') ?? 'public';
+    // Access attribute needs to be set to lower case
+    // to match the portal visibilities that is set in the config apigee_edge.api_product_settings.
+    $product_visibility = $entity->getAttributeValue('access') ? strtolower($entity->getAttributeValue('access')) : 'public';
     $visible_to_roles = \Drupal::config($config_name)->get('access')[$product_visibility] ?? [];
 
     // A user may not have access to this API product based on the current
@@ -1280,12 +1283,34 @@ function apigee_edge_user_presave(UserInterface $account) {
     return;
   }
 
+  /** @var \Drupal\Core\Logger\LoggerChannelInterface $logger */
+  $logger = \Drupal::service('logger.channel.apigee_edge');
+
+  // If installation is through drush si, then avoid creating developer
+  // entity on Apigee because Apigee config is empty.
+  // since drush si cannot set default values for the form.
+  // Use `drush key-save apigee_edge_connection_default '{\"auth_type\"
+  // :\"basic\",\"organization\":\"ORGANIZATION\",\"username\":\"USERNAME\"
+  // ,\"password\":\"PASSWORD"}' --key-type=apigee_auth -y`
+  // to create a key after drush si.
+  /** @var \Drupal\apigee_edge\SDKConnectorInterface $sdk_connector */
+  $sdk_connector = \Drupal::service('apigee_edge.sdk_connector');
+  try {
+    $sdk_connector->testConnection();
+  }
+  catch (\Exception $exception) {
+    $context = [
+      '@developer' => $account->getEmail()
+    ];
+    $logger->warning("Could not create developer entity: @developer on Apigee Edge/X, because there was no connection to Apigee Edge.", $context);
+    return;
+  }
+
   /** @var \Drupal\apigee_edge\UserDeveloperConverterInterface $user_developer */
   $user_developer = \Drupal::service('apigee_edge.converter.user_developer');
   /** @var \Drupal\apigee_edge\FieldAttributeConverterInterface $field_to_attribute */
   $field_to_attribute = \Drupal::service('apigee_edge.converter.field_attribute');
-  /** @var \Drupal\Core\Logger\LoggerChannelInterface $logger */
-  $logger = \Drupal::service('logger.channel.apigee_edge');
+
   try {
     /** @var \Drupal\apigee_edge\Entity\Developer $developer */
     $result = $user_developer->convertUser($account);
@@ -1563,7 +1588,7 @@ function apigee_edge_cron() {
   // The reason of this is to avoid race conditions.
   for ($i = 0; $i < 100; $i++) {
     if (($job = $executor->select())) {
-      $executor->cast($job);
+      $executor->call($job);
     }
     else {
       break;
@@ -1667,7 +1692,7 @@ function apigee_edge_developer_app_storage_load(array $entities) {
   // anyway but one by one. With this we warm up the user entity cache and
   // User::load() will return all users from cache.
   $userStorage = \Drupal::entityTypeManager()->getStorage('user');
-  $uids = $userStorage->getQuery()->condition('mail', $dev_id_mail_map, 'IN')->execute();
+  $uids = $userStorage->getQuery()->accessCheck(TRUE)->condition('mail', $dev_id_mail_map, 'IN')->execute();
   $users = $userStorage->loadMultiple($uids);
 
   if ($dev_id_mail_map) {

@@ -19,8 +19,6 @@
 
 namespace Drupal\apigee_m10n\Entity\Access;
 
-use Apigee\Edge\Api\Monetization\Entity\DeveloperCategoryRatePlanInterface;
-use Apigee\Edge\Api\Monetization\Entity\DeveloperRatePlanInterface;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Entity\EntityHandlerInterface;
 use Drupal\Core\Entity\EntityInterface;
@@ -70,38 +68,13 @@ class XRatePlanAccessControlHandler extends EntityAccessControlHandlerBase imple
    */
   protected function checkAccess(EntityInterface $entity, $operation, AccountInterface $account) {
     /** @var \Drupal\apigee_m10n\Entity\XRatePlanInterface $entity */
-    $access = parent::checkAccess($entity, $operation, $account);
 
-    // Allow access if user has permission `view/purchase xrate_plan as anyone`.
-    if ($account->hasPermission("$operation rate_plan as anyone")) {
-      return AccessResult::allowed();
-    }
+    // Allow access if user has permission `view/purchase rate_plan`.
+    return AccessResult::allowedIf(
+      $account->hasPermission("$operation rate_plan as anyone") ||
+      ($account->hasPermission("$operation rate_plan") && $account->id() === $entity->getOwnId())
+    );
 
-    /** @var \Apigee\Edge\Api\ApigeeX\Entity\RatePlanInterface $rate_plan */
-    $rate_plan = $entity->decorated();
-
-    // If rate plan is a developer category rate plan, deny access if developer
-    // does not belong to rate_plan category.
-    /** @var \Drupal\apigee_edge\Entity\DeveloperInterface $developer */
-    if ($rate_plan instanceof DeveloperCategoryRatePlanInterface) {
-      if (($category = $rate_plan->getDeveloperCategory()) && ($developer = $this->entityTypeManager->getStorage('developer')->load($account->getEmail()))) {
-        return AccessResult::allowedIf(($developer_category = $developer->decorated()->getAttributeValue('MINT_DEVELOPER_CATEGORY')) && ($category->id() === $developer_category))
-          ->andIf(AccessResult::allowedIfHasPermission($account, "$operation rate_plan"));
-      }
-      return AccessResult::forbidden("User {$developer->getEmail()} missing required developer category.");
-    }
-
-    // If rate plan is a developer xrate plan, and the assigned developer is
-    // different from account, deny access.
-    if ($rate_plan instanceof DeveloperRatePlanInterface) {
-      if ($developer = $rate_plan->getDeveloper()) {
-        return AccessResult::allowedIf($account->getEmail() === $developer->getEmail())
-          ->andIf(AccessResult::allowedIfHasPermission($account, "$operation rate_plan"));
-      }
-      return AccessResult::forbidden("User {$developer->getEmail()} cannot view developer rate plan.");
-    }
-
-    return $access->andIf(AccessResult::allowedIfHasPermission($account, "$operation rate_plan"));
   }
 
   /**

@@ -57,11 +57,13 @@ class CartOrderPlacedTest extends CartKernelTestBase {
    */
   public function testCartOrderPlaced() {
     $this->store = $this->createStore();
+    /** @var \Drupal\commerce_order\Entity\OrderInterface $cart_order */
     $cart_order = $this->container->get('commerce_cart.cart_provider')->createCart('default', $this->store, $this->user);
     $this->cartManager = $this->container->get('commerce_cart.cart_manager');
     $this->cartManager->addEntity($cart_order, $this->variation);
 
     $this->assertNotEmpty($cart_order->cart->value);
+    $this->assertEquals('Cart 1', $cart_order->label());
 
     $cart_order->getState()->applyTransitionById('place');
     $cart_order->save();

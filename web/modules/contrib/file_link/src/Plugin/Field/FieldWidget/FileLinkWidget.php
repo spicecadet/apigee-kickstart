@@ -48,11 +48,11 @@ class FileLinkWidget extends LinkWidget {
     // Add meta-data values.
     $element['size'] = [
       '#type' => 'value',
-      '#value' => (int) (isset($items[$delta]->size) ? $items[$delta]->size : NULL),
+      '#value' => (int) ($items[$delta]->size ?? NULL),
     ];
     $element['format'] = [
       '#type' => 'value',
-      '#value' => isset($items[$delta]->format) ? $items[$delta]->format : NULL,
+      '#value' => $items[$delta]->format ?? NULL,
     ];
     return $element;
   }

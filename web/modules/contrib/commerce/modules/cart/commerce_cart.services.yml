@@ -37,6 +37,11 @@ services:
     tags:
       - { name: event_subscriber }
 
+  commerce_cart.order_label_subscriber:
+    class: Drupal\commerce_cart\EventSubscriber\OrderLabelSubscriber
+    tags:
+      - { name: event_subscriber, priority: -100 }
+
   commerce_cart.query_access_subscriber:
     class: Drupal\commerce_cart\EventSubscriber\QueryAccessSubscriber
     arguments: ['@commerce_cart.cart_provider', '@commerce_cart.cart_session']

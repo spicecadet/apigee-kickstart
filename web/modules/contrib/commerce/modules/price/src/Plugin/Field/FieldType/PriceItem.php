@@ -96,6 +96,7 @@ class PriceItem extends FieldItemBase {
   public static function defaultFieldSettings() {
     return [
       'available_currencies' => [],
+      'allow_negative' => FALSE,
     ] + parent::defaultFieldSettings();
   }
 
@@ -117,7 +118,23 @@ class PriceItem extends FieldItemBase {
       '#size' => 5,
     ];
 
+    $element['allow_negative'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Allow negative prices'),
+      '#default_value' => $this->getSetting('allow_negative'),
+    ];
+
     return $element;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function fieldSettingsToConfigData(array $settings) {
+    $settings['available_currencies'] = array_filter(
+      $settings['available_currencies']
+    );
+    return $settings;
   }
 
   /**

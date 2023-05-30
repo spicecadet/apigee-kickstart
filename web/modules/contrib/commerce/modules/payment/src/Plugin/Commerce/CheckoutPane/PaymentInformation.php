@@ -207,15 +207,23 @@ class PaymentInformation extends CheckoutPaneBase {
     // Store the options for submitPaneForm().
     $pane_form['#payment_options'] = $options;
 
-    // If this is an existing payment method, return the pane form.
-    // Editing payment methods at checkout is not supported.
-    if ($default_option->getPaymentMethodId()) {
-      return $pane_form;
-    }
-
     $default_payment_gateway_id = $default_option->getPaymentGatewayId();
     $payment_gateway = $payment_gateways[$default_payment_gateway_id];
     $payment_gateway_plugin = $payment_gateway->getPlugin();
+
+    // If this is an existing payment method, return the pane form.
+    // Editing payment methods at checkout is not supported.
+    if ($default_option->getPaymentMethodId()) {
+      $payment_method_storage = $this->entityTypeManager->getStorage('commerce_payment_method');
+      /** @var \Drupal\commerce_payment\Entity\PaymentMethodInterface $payment_method */
+      $payment_method = $payment_method_storage->load($default_option->getPaymentMethodId());
+      // If the payment method hasn't been tokenized yet, allow updating the
+      // billing information.
+      if (empty($payment_method->getRemoteId()) && $payment_gateway_plugin->collectsBillingInformation()) {
+        $pane_form = $this->buildBillingProfileForm($pane_form, $form_state);
+      }
+      return $pane_form;
+    }
 
     // If this payment gateway plugin supports creating tokenized payment
     // methods before processing payment, we build the "add-payment-method"
@@ -398,19 +406,32 @@ class PaymentInformation extends CheckoutPaneBase {
       // Copy the billing information to the order.
       $payment_method_profile = $payment_method->getBillingProfile();
       if ($payment_method_profile) {
-        $billing_profile = $this->order->getBillingProfile();
-        if (!$billing_profile) {
-          $billing_profile = $this->entityTypeManager->getStorage('profile')->create([
-            'type' => 'customer',
-            'uid' => 0,
-          ]);
+        // If the $billing_profile variable is set, this means the payment
+        // method isn't yet tokenized and the billing information was
+        // potentially updated, therefore we need to copy the billing
+        // information entered to the payment method.
+        if (isset($billing_profile)) {
+          $payment_method_profile->populateFromProfile($billing_profile);
+          // The data field is not copied by default but needs to be.
+          // For example, both profiles need to have an address_book_profile_id.
+          $payment_method_profile->populateFromProfile($billing_profile, ['data']);
+          $payment_method_profile->save();
         }
-        $billing_profile->populateFromProfile($payment_method_profile);
-        // The data field is not copied by default but needs to be.
-        // For example, both profiles need to have an address_book_profile_id.
-        $billing_profile->populateFromProfile($payment_method_profile, ['data']);
-        $billing_profile->save();
-        $this->order->setBillingProfile($billing_profile);
+        else {
+          $billing_profile = $this->order->getBillingProfile();
+          if (!$billing_profile) {
+            $billing_profile = $this->entityTypeManager->getStorage('profile')->create([
+              'type' => 'customer',
+              'uid' => 0,
+            ]);
+          }
+          $billing_profile->populateFromProfile($payment_method_profile);
+          // The data field is not copied by default but needs to be.
+          // For example, both profiles need to have an address_book_profile_id.
+          $billing_profile->populateFromProfile($payment_method_profile, ['data']);
+          $billing_profile->save();
+          $this->order->setBillingProfile($billing_profile);
+        }
       }
     }
     elseif ($payment_gateway_plugin instanceof SupportsStoredPaymentMethodsInterface) {

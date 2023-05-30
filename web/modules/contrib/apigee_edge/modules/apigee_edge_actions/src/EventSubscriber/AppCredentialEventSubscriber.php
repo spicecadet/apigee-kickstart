@@ -28,7 +28,7 @@ use Drupal\Component\Plugin\Exception\PluginException;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Session\AccountInterface;
-use Symfony\Component\EventDispatcher\Event;
+use Symfony\Contracts\EventDispatcher\Event;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
@@ -121,7 +121,7 @@ class AppCredentialEventSubscriber implements EventSubscriberInterface {
    *
    * @param string $rules_event_name
    *   The name of the rules event.
-   * @param \Symfony\Component\EventDispatcher\Event $event
+   * @param \Symfony\Contracts\EventDispatcher\Event $event
    *   The api credential event.
    * @param array $api_products
    *   An array of api products.
@@ -150,12 +150,12 @@ class AppCredentialEventSubscriber implements EventSubscriberInterface {
         $api_product = $this->entityTypeManger
           ->getStorage('api_product')
           ->load($product);
-        $this->eventDispatcher->dispatch($rules_event_name, new EdgeEntityEventEdge($app, [
+        $this->eventDispatcher->dispatch(new EdgeEntityEventEdge($app, [
           $app_type => $app,
           'developer' => $developer,
           'api_product_name' => $api_product->getName(),
           'api_product_display_name' => $api_product->getDisplayName(),
-        ]));
+        ]), $rules_event_name);
       }
     }
     catch (PluginException $exception) {

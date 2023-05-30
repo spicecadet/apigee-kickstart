@@ -43,6 +43,7 @@ abstract class EdgeKeyTypeBase extends KeyTypeBase implements EdgeKeyTypeInterfa
    * {@inheritdoc}
    */
   public function unserialize($value) {
+    $value = $value ?? '';
     return Json::decode($value);
   }
 
@@ -75,19 +76,6 @@ abstract class EdgeKeyTypeBase extends KeyTypeBase implements EdgeKeyTypeInterfa
       return Client::EDGE_ENDPOINT;
     }
     return $key->getKeyValues()['endpoint'];
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getEndpointType(KeyInterface $key): string {
-    if ($this->getInstanceType($key) === EdgeKeyTypeInterface::INSTANCE_TYPE_PUBLIC) {
-      /* @phpstan-ignore-next-line */
-      return EdgeKeyTypeInterface::EDGE_ENDPOINT_TYPE_DEFAULT;
-    }
-
-    /* @phpstan-ignore-next-line */
-    return EdgeKeyTypeInterface::EDGE_ENDPOINT_TYPE_CUSTOM;
   }
 
   /**

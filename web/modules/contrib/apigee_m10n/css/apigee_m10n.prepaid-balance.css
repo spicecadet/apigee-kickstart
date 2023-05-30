@@ -31,3 +31,11 @@
 .apigee-m10n-prepaid-balance-wrapper .prepaid-balance-refresh-form .form-submit {
   margin-right: 0;
 }
+
+.disable-add-credit{
+  pointer-events: none;
+  cursor: not-allowed;
+  opacity: 0.65;
+  filter: alpha(opacity=65);
+  box-shadow: none;
+}

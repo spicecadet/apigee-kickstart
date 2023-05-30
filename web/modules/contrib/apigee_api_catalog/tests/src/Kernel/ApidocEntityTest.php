@@ -57,13 +57,15 @@ class ApidocEntityTest extends KernelTestBase {
     'link',
     'file_link',
     'path_alias',
+    'key',
+    'apigee_edge',
     'apigee_api_catalog',
   ];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installSchema('user', ['users_data']);
@@ -102,7 +104,7 @@ class ApidocEntityTest extends KernelTestBase {
     // This needs to run before the alias can be picked up?
     $entity->toUrl()->toString();
     $alias = \Drupal::service('path_alias.manager')->getAliasByPath('/node/' . $entity->id(), $entity->language()->getId());
-    $this->assertEqual($alias, '/api/' . $entity->id());
+    $this->assertEquals($alias, '/api/' . $entity->id());
 
     $entity->delete();
     $this->assertNull($this->nodeStorage->load($entity_id));

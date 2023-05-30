@@ -19,7 +19,7 @@ function commerce_store_mail_alter(&$message) {
     $current_store = \Drupal::service('commerce_store.current_store');
     $current_store = $current_store->getStore();
     if ($current_store) {
-      $message['from'] = $current_store->getEmail();
+      $message['from'] = $current_store->getEmailFromHeader();
     }
   }
 }
@@ -32,13 +32,16 @@ function commerce_store_theme() {
     'commerce_store' => [
       'render element' => 'elements',
     ],
+    'commerce_store_form' => [
+      'render element' => 'form',
+    ],
   ];
 }
 
 /**
- * Implements hook_field_widget_form_alter().
+ * Implements hook_field_widget_single_element_form_alter().
  */
-function commerce_store_field_widget_form_alter(&$element, FormStateInterface $form_state, $context) {
+function commerce_store_field_widget_single_element_form_alter(&$element, FormStateInterface $form_state, $context) {
   /** @var \Drupal\Core\Field\BaseFieldDefinition $field_definition */
   $field_definition = $context['items']->getFieldDefinition();
   $field_name = $field_definition->getName();

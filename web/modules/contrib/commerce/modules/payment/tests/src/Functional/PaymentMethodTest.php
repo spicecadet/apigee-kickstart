@@ -38,7 +38,7 @@ class PaymentMethodTest extends CommerceBrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'commerce_payment',
     'commerce_payment_example',
   ];
@@ -116,8 +116,11 @@ class PaymentMethodTest extends CommerceBrowserTestBase {
     $this->drupalGet($this->collectionUrl);
     $this->getSession()->getPage()->clickLink('Add payment method');
     $this->assertSession()->addressEquals($this->collectionUrl . '/add');
+    $rendered_address = $default_address;
+    // Note that the full country name is rendered (not just the country code).
+    $rendered_address['country_code'] = 'United States';
     // Confirm that the default profile's address is rendered.
-    foreach ($default_address as $property => $value) {
+    foreach ($rendered_address as $property => $value) {
       $prefix = 'add_payment_method[billing_information][address][0][address]';
       $this->assertSession()->pageTextContains($value);
       $this->assertSession()->fieldNotExists($prefix . '[' . $property . ']');
@@ -141,7 +144,7 @@ class PaymentMethodTest extends CommerceBrowserTestBase {
 
     $this->drupalGet($this->collectionUrl . '/' . $payment_method->id() . '/edit');
     // Confirm that the default profile's address is rendered.
-    foreach ($default_address as $property => $value) {
+    foreach ($rendered_address as $property => $value) {
       $prefix = 'add_payment_method[billing_information][address][0][address]';
       $this->assertSession()->pageTextContains($value);
       $this->assertSession()->fieldNotExists($prefix . '[' . $property . ']');

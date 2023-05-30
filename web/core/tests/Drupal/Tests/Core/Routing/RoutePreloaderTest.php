@@ -4,7 +4,7 @@ namespace Drupal\Tests\Core\Routing;
 
 use Drupal\Core\Routing\RoutePreloader;
 use Drupal\Tests\UnitTestCase;
-use Symfony\Component\EventDispatcher\Event;
+use Drupal\Component\EventDispatcher\Event;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
@@ -46,7 +46,7 @@ class RoutePreloaderTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     $this->routeProvider = $this->createMock('Drupal\Core\Routing\PreloadableRouteProviderInterface');
     $this->state = $this->createMock('\Drupal\Core\State\StateInterface');
     $this->cache = $this->createMock('Drupal\Core\Cache\CacheBackendInterface');
@@ -65,7 +65,7 @@ class RoutePreloaderTest extends UnitTestCase {
     $route_collection->add('test2', new Route('/admin/bar', ['_controller' => 'Drupal\ExampleController']));
     $event->expects($this->once())
       ->method('getRouteCollection')
-      ->will($this->returnValue($route_collection));
+      ->willReturn($route_collection);
 
     $this->state->expects($this->once())
       ->method('set')
@@ -88,7 +88,7 @@ class RoutePreloaderTest extends UnitTestCase {
     $route_collection->add('test4', new Route('/admin', ['_controller' => 'Drupal\ExampleController']));
     $event->expects($this->once())
       ->method('getRouteCollection')
-      ->will($this->returnValue($route_collection));
+      ->willReturn($route_collection);
 
     $this->state->expects($this->once())
       ->method('set')
@@ -126,7 +126,7 @@ class RoutePreloaderTest extends UnitTestCase {
 
     $event->expects($this->once())
       ->method('getRouteCollection')
-      ->will($this->returnValue($route_collection));
+      ->willReturn($route_collection);
 
     $this->state->expects($this->once())
       ->method('set')
@@ -146,7 +146,7 @@ class RoutePreloaderTest extends UnitTestCase {
     $request->setRequestFormat('non-html');
     $event->expects($this->any())
       ->method('getRequest')
-      ->will($this->returnValue($request));
+      ->willReturn($request);
 
     $this->routeProvider->expects($this->never())
       ->method('getRoutesByNames');
@@ -167,7 +167,7 @@ class RoutePreloaderTest extends UnitTestCase {
     $request->setRequestFormat('html');
     $event->expects($this->any())
       ->method('getRequest')
-      ->will($this->returnValue($request));
+      ->willReturn($request);
 
     $this->routeProvider->expects($this->once())
       ->method('preLoadRoutes')
@@ -175,7 +175,7 @@ class RoutePreloaderTest extends UnitTestCase {
     $this->state->expects($this->once())
       ->method('get')
       ->with('routing.non_admin_routes')
-      ->will($this->returnValue(['test2']));
+      ->willReturn(['test2']);
 
     $this->preloader->onRequest($event);
   }

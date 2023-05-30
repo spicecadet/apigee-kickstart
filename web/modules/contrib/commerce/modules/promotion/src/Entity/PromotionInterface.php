@@ -98,7 +98,7 @@ interface PromotionInterface extends ContentEntityInterface, EntityStoresInterfa
   /**
    * Gets the promotion order type IDs.
    *
-   * @return int[]
+   * @return string[]
    *   The promotion order type IDs.
    */
   public function getOrderTypeIds();
@@ -106,7 +106,7 @@ interface PromotionInterface extends ContentEntityInterface, EntityStoresInterfa
   /**
    * Sets the promotion order type IDs.
    *
-   * @param int[] $order_type_ids
+   * @param string[] $order_type_ids
    *   The promotion order type IDs.
    *
    * @return $this
@@ -448,5 +448,13 @@ interface PromotionInterface extends ContentEntityInterface, EntityStoresInterfa
    * @return $this
    */
   public function setCreatedTime($timestamp);
+
+  /**
+   * Checks whether a coupon is required for the promotion to apply.
+   *
+   * @return bool
+   *   TRUE if the promotion requires a coupon, FALSE otherwise.
+   */
+  public function requiresCoupon();
 
 }

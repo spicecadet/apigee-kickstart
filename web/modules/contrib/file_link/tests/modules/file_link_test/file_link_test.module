@@ -1,5 +1,10 @@
 <?php
 
+/**
+ * @file
+ * Hook implementations for File Link Test module.
+ */
+
 use Drupal\Core\Entity\EntityInterface;
 
 /**
@@ -12,28 +17,28 @@ use Drupal\Core\Entity\EntityInterface;
  *   The count.
  */
 function file_link_test_entity_save_counter(EntityInterface $entity) {
-  global $entity_save_counter;
+  global $_file_link_test_entity_save_counter;
 
   $key = $entity->getEntityTypeId() . $entity->id();
-  if (!isset($entity_save_counter[$key])) {
-    $entity_save_counter[$key] = 0;
+  if (!isset($_file_link_test_entity_save_counter[$key])) {
+    $_file_link_test_entity_save_counter[$key] = 0;
   }
 
-  return $entity_save_counter[$key];
+  return $_file_link_test_entity_save_counter[$key];
 }
 
 /**
  * Implements hook_entity_insert().
  */
 function file_link_test_entity_insert(EntityInterface $entity) {
-  global $entity_save_counter;
+  global $_file_link_test_entity_save_counter;
 
   $key = $entity->getEntityTypeId() . $entity->id();
-  if (!isset($entity_save_counter[$key])) {
-    $entity_save_counter[$key] = 0;
+  if (!isset($_file_link_test_entity_save_counter[$key])) {
+    $_file_link_test_entity_save_counter[$key] = 0;
   }
 
-  $entity_save_counter[$key]++;
+  $_file_link_test_entity_save_counter[$key]++;
 }
 
 /**

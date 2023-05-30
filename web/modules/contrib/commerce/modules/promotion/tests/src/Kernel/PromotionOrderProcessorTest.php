@@ -29,7 +29,7 @@ class PromotionOrderProcessorTest extends OrderKernelTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'commerce_promotion',
     'language',
     'content_translation',
@@ -332,6 +332,32 @@ class PromotionOrderProcessorTest extends OrderKernelTestBase {
     $adjustments = $this->order->collectAdjustments();
     $this->assertEquals(1, count($adjustments));
     $this->assertEquals('Promotion EN', $adjustments[0]->getLabel());
+  }
+
+  /**
+   * Tests that the promotion order processor cleans up auto added order items.
+   */
+  public function testOrderItemRemoval() {
+    // We simulate an order item automatically added by the BuyXGetY offer.
+    $order_item = OrderItem::create([
+      'type' => 'test',
+      'quantity' => 0,
+      'unit_price' => [
+        'number' => '20.00',
+        'currency_code' => 'USD',
+      ],
+      'data' => [
+        'owned_by_promotion' => TRUE,
+      ],
+    ]);
+    $order_item->save();
+    $this->order->setRefreshState(Order::REFRESH_SKIP);
+    $this->order->addItem($order_item);
+    $this->order->save();
+
+    $this->assertCount(1, $this->order->getItems());
+    $this->container->get('commerce_promotion.promotion_order_processor')->process($this->order);
+    $this->assertCount(0, $this->order->getItems());
   }
 
   /**

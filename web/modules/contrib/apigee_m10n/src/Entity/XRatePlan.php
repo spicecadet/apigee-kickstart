@@ -203,7 +203,7 @@ class XRatePlan extends FieldableEdgeEntityBase implements XRatePlanInterface {
 
     // The API products are many-to-one.
     $definitions['apiProduct']->setCardinality(1)
-      ->setSetting('target_type', 'api_product')
+      ->setSetting('target_type', 'xproduct')
       ->setLabel(t('Product'))
       ->setDescription(t('The API product X the rate plan belongs to.'));
 
@@ -338,6 +338,16 @@ class XRatePlan extends FieldableEdgeEntityBase implements XRatePlanInterface {
       $route_user = User::load($route_user);
     }
     return $route_user ?: \Drupal::currentUser();
+  }
+
+  /**
+   * Get's user id.
+   *
+   * @return string
+   *   Returns user id.
+   */
+  public function getOwnId() {
+    return $this->getUser()->id();
   }
 
   /**
@@ -543,7 +553,7 @@ class XRatePlan extends FieldableEdgeEntityBase implements XRatePlanInterface {
   public function getstartTimeFormat() {
     $startTime_milliseconds = $this->getstartTime();
     if ($startTime_milliseconds) {
-      $startTime_seconds = ($startTime_milliseconds / 1000);
+      $startTime_seconds = (int) ($startTime_milliseconds / 1000);
       $activeOn = \Drupal::service('date.formatter')->format($startTime_seconds, 'custom', 'F j, Y', date_default_timezone_get());
     }
 
@@ -559,11 +569,20 @@ class XRatePlan extends FieldableEdgeEntityBase implements XRatePlanInterface {
   public function getendTimeFormat() {
     $endTime_milliseconds = $this->getendTime();
     if ($endTime_milliseconds) {
-      $endTime_seconds = ($endTime_milliseconds / 1000);
+      $endTime_seconds = (int) ($endTime_milliseconds / 1000);
       $endOn = \Drupal::service('date.formatter')->format($endTime_seconds, 'custom', 'F j, Y', date_default_timezone_get());
     }
 
     return $endOn ?? "Never";
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function loadAll(): array {
+    return XRatePlan::filterActiveRatePlans(\Drupal::entityTypeManager()
+      ->getStorage(static::ENTITY_TYPE_ID)
+      ->loadAll());
   }
 
 }

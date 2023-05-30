@@ -2,13 +2,16 @@
 
 namespace Drupal\Tests\smtp\Unit\Plugin\Mail;
 
+use Drupal\Core\File\FileSystemInterface;
+use Drupal\Core\Session\AccountProxyInterface;
+use Prophecy\PhpUnit\ProphecyTrait;
 use Drupal\Component\Utility\EmailValidator;
 use Drupal\Component\Utility\EmailValidatorInterface;
 use Drupal\Core\File\FileSystem;
 use Drupal\Core\File\MimeType\MimeTypeGuesser;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
-use Drupal\Core\Messenger\Messenger;
+use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxy;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\smtp\Plugin\Mail\SMTPMailSystem;
@@ -17,6 +20,7 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception as PHPMailerException;
 use Prophecy\Argument;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\Mime\MimeTypeGuesserInterface;
 
 /**
  * Validate requirements for SMTPMailSystem.
@@ -25,6 +29,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 class SMTPMailSystemTest extends UnitTestCase {
 
+  use ProphecyTrait;
   /**
    * The email validator.
    *
@@ -35,15 +40,23 @@ class SMTPMailSystemTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     $this->mockConfigFactory = $this->getConfigFactoryStub([
-      'smtp.settings' => ['smtp_timeout' => 30],
-      'system.site' => ['name' => 'Mock site name'],
+      'smtp.settings' => [
+        'smtp_timeout' => 30,
+        'smtp_reroute_address' => '',
+      ],
+      'system.site' => ['name' => 'Mock site name', 'mail' => 'noreply@testmock.mock'],
+    ]);
+    $this->mockConfigFactoryRerouted = $this->getConfigFactoryStub([
+      'smtp.settings' => [
+        'smtp_reroute_address' => 'blackhole@galaxy.com',
+      ],
     ]);
 
     $this->mockLogger = $this->prophesize(LoggerChannelFactoryInterface::class);
     $this->mockLogger->get('smtp')->willReturn($this->prophesize(LoggerChannelInterface::class));
-    $this->mockMessenger = $this->prophesize(Messenger::class);
+    $this->mockMessenger = $this->prophesize(MessengerInterface::class);
     $this->mockCurrentUser = $this->prophesize(AccountProxy::class);
     $this->mockFileSystem = $this->prophesize(FileSystem::class);
     $this->mimeTypeGuesser = $this->prophesize(MimeTypeGuesser::class);
@@ -130,7 +143,7 @@ class SMTPMailSystemTest extends UnitTestCase {
   public function testGetComponents($input, $expected) {
     $mailSystem = new SMTPMailSystemTestHelper([], '', [], $this->mockLogger->reveal(), $this->mockMessenger->reveal(), $this->emailValidator, $this->mockConfigFactory, $this->mockCurrentUser->reveal(), $this->mockFileSystem->reveal(), $this->mimeTypeGuesser->reveal());
 
-    $ret = $mailSystem->publiGetComponents($input);
+    $ret = $mailSystem->publicGetComponents($input);
 
     if (!empty($expected['input'])) {
       $this->assertEquals($expected['input'], $ret['input']);
@@ -141,6 +154,33 @@ class SMTPMailSystemTest extends UnitTestCase {
 
     $this->assertEquals($expected['name'], $ret['name']);
     $this->assertEquals($expected['email'], $ret['email']);
+  }
+
+  /**
+   * Test applyRerouting().
+   */
+  public function testApplyRerouting() {
+    $mailSystemRerouted = new SMTPMailSystemTestHelper([], '', [], $this->mockLogger->reveal(), $this->mockMessenger->reveal(), $this->emailValidator, $this->mockConfigFactoryRerouted, $this->mockCurrentUser->reveal(), $this->mockFileSystem->reveal(), $this->mimeTypeGuesser->reveal());
+    $to = 'abc@example.com';
+    $headers = [
+      'some' => 'header',
+      'cc' => 'xyz@example.com',
+      'bcc' => 'ttt@example.com',
+    ];
+    [$new_to, $new_headers] = $mailSystemRerouted->publicApplyRerouting($to, $headers);
+    $this->assertEquals($new_to, 'blackhole@galaxy.com', 'to address is set to the reroute address.');
+    $this->assertEquals($new_headers, ['some' => 'header'], 'bcc and cc headers are unset when rerouting.');
+
+    $mailSystemNotRerouted = new SMTPMailSystemTestHelper([], '', [], $this->mockLogger->reveal(), $this->mockMessenger->reveal(), $this->emailValidator, $this->mockConfigFactory, $this->mockCurrentUser->reveal(), $this->mockFileSystem->reveal(), $this->mimeTypeGuesser->reveal());
+    $to = 'abc@example.com';
+    $headers = [
+      'some' => 'header',
+      'cc' => 'xyz@example.com',
+      'bcc' => 'ttt@example.com',
+    ];
+    [$new_to, $new_headers] = $mailSystemNotRerouted->publicApplyRerouting($to, $headers);
+    $this->assertEquals($new_to, $to, 'original to address is preserved when not rerouting.');
+    $this->assertEquals($new_headers, $headers, 'bcc and cc headers are preserved when not rerouting.');
   }
 
   /**
@@ -242,6 +282,141 @@ class SMTPMailSystemTest extends UnitTestCase {
     self::assertTrue($result);
   }
 
+  /**
+   * Test mail() with missing header value.
+   */
+  public function testMailHeader() {
+    $mailSystem = new SMTPMailSystemTestHelper(
+      [],
+      '',
+      [],
+      $this->mockLogger->reveal(),
+      $this->mockMessenger->reveal(),
+      new EmailValidatorPhpMailerDefault(),
+      $this->mockConfigFactory,
+      $this->mockCurrentUser->reveal(),
+      $this->mockFileSystem->reveal(),
+      $this->mimeTypeGuesser->reveal()
+    );
+
+    $message = [
+      'to' => 'test@drupal.org',
+      'from' => 'PhpUnit Localhost <phpunit@localhost.com>',
+      'body' => 'Some test content for testMailHeaderDrupal',
+      'headers' => [
+        'content-type' => 'text/plain',
+        'from' => 'test@drupal.org',
+        'reply-to' => 'test@drupal.org',
+        'cc' => '',
+        'bcc' => '',
+      ],
+      'subject' => 'testMailHeaderDrupal',
+    ];
+
+    // Call function.
+    $result = $mailSystem->mail($message);
+
+    self::assertTrue($result);
+  }
+
+  /**
+   * Tests #3308653 and duplicated headers.
+   */
+  public function testFromHeaders_3308653() {
+    $mailer = new class (
+      [],
+      'SMTPMailSystem',
+      [],
+      $this->createMock(LoggerChannelFactoryInterface::class),
+      $this->createMock(MessengerInterface::class),
+      new EmailValidator(),
+      $this->getConfigFactoryStub([
+        'smtp.settings' => [
+          'smtp_timeout' => 30,
+          'smtp_reroute_address' => '',
+        ],
+        'system.site' => ['name' => 'Mock site name', 'mail' => 'noreply@testmock.mock'],
+      ]),
+      $this->createMock(AccountProxyInterface::class),
+      $this->createMock(FileSystemInterface::class),
+      $this->createMock(MimeTypeGuesserInterface::class)
+    ) extends SMTPMailSystem {
+
+      /**
+       * {@inheritdoc}
+       */
+      public function smtpMailerSend(array $mailerArr) {
+        return $mailerArr;
+      }
+
+      /**
+       * {@inheritdoc}
+       */
+      protected function getMailer() {
+        return new class (TRUE) extends PHPMailer {
+
+          /**
+           * Return the MIME header for testing.
+           *
+           * @return array
+           *   The MIMEHeader as an array.
+           */
+          public function getMIMEHeaders() {
+            return array_filter(explode(static::$LE, $this->MIMEHeader));
+          }
+
+        };
+      }
+
+    };
+
+    // Message as prepared by \Drupal\Core\Mail\MailManager::doMail().
+    $message = [
+      'id' => 'smtp_test',
+      'module' => 'smtp',
+      'key' => 'test',
+      'to' => 'test@drupal.org',
+      'from' => 'phpunit@localhost.com',
+      'reply-to' => 'phpunit@localhost.com',
+      'langcode' => 'en',
+      'params' => [],
+      'send' => TRUE,
+      'subject' => 'testMailHeaderDrupal',
+      'body' => ['Some test content for testMailHeaderDrupal'],
+    ];
+    $headers = [
+      'MIME-Version' => '1.0',
+      'Content-Type' => 'text/plain; charset=UTF-8; format=flowed; delsp=yes',
+      'Content-Transfer-Encoding' => '8Bit',
+      'X-Mailer' => 'Drupal',
+    ];
+    $headers['From'] = $headers['Sender'] = $headers['Return-Path'] = $message['from'];
+    $message['headers'] = $headers;
+
+    // Prevent passing `null` to preg_quote in
+    // \Drupal\Core\Mail\MailFormatHelper::htmlToMailUrls().
+    $GLOBALS['base_path'] = '/';
+    $message = $mailer->format($message);
+    $result = $mailer->mail($message);
+
+    self::assertArrayHasKey('to', $result);
+    self::assertEquals($message['to'], $result['to']);
+    self::assertArrayHasKey('from', $result);
+    self::assertEquals($message['from'], $result['from']);
+    self::assertArrayHasKey('mailer', $result);
+    $phpmailer = $result['mailer'];
+    self::assertInstanceOf(PHPMailer::class, $phpmailer);
+    // Pre-send constructs the email message.
+    self::assertTrue($phpmailer->preSend());
+
+    $mime_headers = [];
+    foreach ($phpmailer->getMIMEHeaders() as $header) {
+      [$name, $value] = explode(': ', $header, 2);
+      self::assertArrayNotHasKey(strtolower($name), $mime_headers);
+      $mime_headers[strtolower($name)] = $value;
+    }
+  }
+
 }
 
 /**
@@ -252,7 +427,7 @@ class SMTPMailSystemTestHelper extends SMTPMailSystem {
   /**
    * Exposes getComponents for testing.
    */
-  public function publiGetComponents($input) {
+  public function publicGetComponents($input) {
     return $this->getComponents($input);
   }
 
@@ -261,6 +436,13 @@ class SMTPMailSystemTestHelper extends SMTPMailSystem {
    */
   public function smtpMailerSend($mailerArr) {
     return TRUE;
+  }
+
+  /**
+   * Exposes applyRerouting() for testing.
+   */
+  public function publicApplyRerouting($to, array $headers) {
+    return $this->applyRerouting($to, $headers);
   }
 
 }

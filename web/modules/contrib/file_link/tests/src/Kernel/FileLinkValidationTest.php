@@ -3,7 +3,6 @@
 namespace Drupal\Tests\file_link\Kernel;
 
 use Drupal\Core\Site\Settings;
-use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
 use Drupal\entity_test\Entity\EntityTest;
 use Drupal\KernelTests\KernelTestBase;
@@ -38,7 +37,7 @@ class FileLinkValidationTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installConfig(['file_link_test']);
@@ -57,19 +56,27 @@ class FileLinkValidationTest extends KernelTestBase {
   public function testWithExtension() {
     $this->entity->set('url_with_extension', ['uri' => static::getFullUrl('')]);
     $violations = $this->entity->get('url_with_extension')->validate();
-    $this->assertSame(static::getViolationMessage('Provided file URL has no extension: @uri', ''), (string) $violations->get(0)->getMessage());
+    $this->assertEquals(t('Provided file URL has no extension: @uri', [
+      '@uri' => static::getFullUrl(''),
+    ]), $violations->get(0)->getMessage());
 
     $this->entity->set('url_with_extension', ['uri' => static::getFullUrl('/')]);
     $violations = $this->entity->get('url_with_extension')->validate();
-    $this->assertSame(static::getViolationMessage('Provided file URL has no extension: @uri', '/'), (string) $violations->get(0)->getMessage());
+    $this->assertEquals(t('Provided file URL has no extension: @uri', [
+      '@uri' => static::getFullUrl('/'),
+    ]), $violations->get(0)->getMessage());
 
     $this->entity->set('url_with_extension', ['uri' => static::getFullUrl('/foo')]);
     $violations = $this->entity->get('url_with_extension')->validate();
-    $this->assertSame(static::getViolationMessage('Provided file URL has no extension: @uri', '/foo'), (string) $violations->get(0)->getMessage());
+    $this->assertEquals(t('Provided file URL has no extension: @uri', [
+      '@uri' => static::getFullUrl('/foo'),
+    ]), $violations->get(0)->getMessage());
 
     $this->entity->set('url_with_extension', ['uri' => static::getFullUrl('/foo.pdf')]);
     $violations = $this->entity->get('url_with_extension')->validate();
-    $this->assertSame(static::getViolationMessage('Provided file URL has no valid extension: @uri', '/foo.pdf'), (string) $violations->get(0)->getMessage());
+    $this->assertEquals(t('Provided file URL has no valid extension: @uri', [
+      '@uri' => static::getFullUrl('/foo.pdf'),
+    ]), $violations->get(0)->getMessage());
 
     $this->entity->set('url_with_extension', ['uri' => static::getFullUrl('/foo.md')]);
     $violations = $this->entity->get('url_with_extension')->validate();
@@ -95,22 +102,10 @@ class FileLinkValidationTest extends KernelTestBase {
    *   An absolute URL.
    */
   protected static function getFullUrl($path) {
-    return Url::fromUri('base:/' . drupal_get_path('module', 'file_link_test') . $path, ['absolute' => TRUE, 'query' => ['foo' => 'bar']])->toString();
-  }
-
-  /**
-   * Provides the violation message for the URl returned by ::getFullUrl().
-   *
-   * @param $message
-   *   Error message.
-   * @param string $path
-   *   A path relative to file_link_test module.
-   *
-   * @return string
-   *   The translated violation message.
-   */
-  protected static function getViolationMessage($message, $path) {
-    return (new TranslatableMarkup($message, ['@uri' => static::getFullUrl($path)]))->__toString();
+    return Url::fromUri('base:/' . \Drupal::service('extension.list.module')->getPath('file_link_test') . $path, [
+      'absolute' => TRUE,
+      'query' => ['foo' => 'bar'],
+    ])->toString();
   }
 
 }

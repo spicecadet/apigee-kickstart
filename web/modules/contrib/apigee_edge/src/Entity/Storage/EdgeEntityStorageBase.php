@@ -231,7 +231,7 @@ abstract class EdgeEntityStorageBase extends DrupalEntityStorageBase implements 
    *   The Drupal entity that decorates the SDK entity.
    */
   protected function createNewInstance(SdkEntityInterface $sdk_entity): DrupalEdgeEntityInterface {
-    $rc = new \ReflectionClass($this->entityClass);
+    $rc = new \ReflectionClass($this->getEntityClass());
     $rm = $rc->getMethod('createFrom');
     return $rm->invoke(NULL, $sdk_entity);
   }
@@ -335,15 +335,16 @@ abstract class EdgeEntityStorageBase extends DrupalEntityStorageBase implements 
   protected function invokeStorageLoadHook(array &$entities) {
     if (!empty($entities)) {
       // Call hook_entity_storage_load().
-      foreach ($this->moduleHandler()->getImplementations('entity_storage_load') as $module) {
-        $function = $module . '_entity_storage_load';
-        $function($entities, $this->entityTypeId);
-      }
+      $this->moduleHandler()->invokeAll(
+        'entity_storage_load',
+        [$entities, $this->entityTypeId]
+      );
+
       // Call hook_TYPE_storage_load().
-      foreach ($this->moduleHandler()->getImplementations($this->entityTypeId . '_storage_load') as $module) {
-        $function = $module . '_' . $this->entityTypeId . '_storage_load';
-        $function($entities);
-      }
+      $this->moduleHandler()->invokeAll(
+        $this->entityTypeId . '_storage_load',
+        [$entities]
+      );
     }
   }
 

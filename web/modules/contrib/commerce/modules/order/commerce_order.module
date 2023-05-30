@@ -116,13 +116,13 @@ function commerce_order_field_formatter_info_alter(array &$info) {
 }
 
 /**
- * Implements hook_field_widget_form_alter().
+ * Implements hook_field_widget_single_element_form_alter().
  *
  * - Changes the label of the purchased_entity field to the label of the
  *   target type (e.g. 'Product variation').
  * - Forbids editing the purchased_entity once the order item is no longer new.
  */
-function commerce_order_field_widget_form_alter(&$element, FormStateInterface $form_state, $context) {
+function commerce_order_field_widget_single_element_form_alter(&$element, FormStateInterface $form_state, $context) {
   $field_definition = $context['items']->getFieldDefinition();
   $field_name = $field_definition->getName();
   $entity_type = $field_definition->getTargetEntityTypeId();
@@ -159,9 +159,17 @@ function template_preprocess_commerce_order(array &$variables) {
   }
   // Inject order fields not manually printed in a separate variable for easier
   // rendering.
-  if (in_array($view_mode, ['user', 'admin'])) {
+  if (in_array($view_mode, ['user', 'admin'], TRUE)) {
     $printed_fields = ['order_items', 'total_price', 'activity', 'completed', 'placed', 'changed', 'uid', 'mail', 'ip_address', 'billing_information', 'shipping_information', 'state', 'balance'];
     $variables['additional_order_fields'] = array_diff_key($variables['order'], array_combine($printed_fields, $printed_fields));
+
+    if ($view_mode === 'admin') {
+      // Show the order's store only if there are multiple available.
+      /** @var \Drupal\commerce_store\StoreStorageInterface $store_storage */
+      $store_storage = \Drupal::entityTypeManager()->getStorage('commerce_store');
+      $store_query = $store_storage->getQuery()->accessCheck(TRUE);
+      $variables['stores_count'] = (int) $store_query->count()->execute();
+    }
   }
 
   if ($billing_profile = $order->getBillingProfile()) {
@@ -434,4 +442,14 @@ function commerce_order_theme_registry_alter(&$theme_registry) {
     'base_price' => NULL,
     'adjustments' => [],
   ];
+}
+
+/**
+ * Implements hook_field_group_content_element_keys_alter().
+ *
+ * Allow orders to render fields groups defined from Fields UI.
+ */
+function commerce_order_field_group_content_element_keys_alter(&$keys) {
+  $keys['commerce_order'] = 'order';
+  $keys['commerce_order_item'] = 'order_item';
 }

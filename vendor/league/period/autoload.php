@@ -1,5 +1,7 @@
 <?php
 
+require __DIR__.'/src/functions_include.php';
+
 spl_autoload_register(function ($className) {
 
     $prefix = 'League\Period\\';
@@ -7,12 +9,7 @@ spl_autoload_register(function ($className) {
         return;
     }
 
-    $file = __DIR__
-        .DIRECTORY_SEPARATOR
-        .'src'
-        .DIRECTORY_SEPARATOR
-        .str_replace('\\', DIRECTORY_SEPARATOR, substr($className, strlen($prefix)))
-        .'.php';
+    $file = __DIR__.'/src/'.str_replace('\\', '/', substr($className, strlen($prefix))).'.php';
     if (!is_readable($file)) {
         return;
     }

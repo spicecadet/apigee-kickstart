@@ -106,6 +106,11 @@ class ProductVariationTitleWidget extends ProductVariationWidgetBase implements 
       '#wrapper_id' => $wrapper_id,
       '#prefix' => '<div id="' . $wrapper_id . '">',
       '#suffix' => '</div>',
+      '#attached' => [
+        'library' => [
+          'commerce_product/update_product_url',
+        ],
+      ],
     ];
     // If an operation caused the form to rebuild, select the variation from
     // the user's current input.
@@ -137,6 +142,8 @@ class ProductVariationTitleWidget extends ProductVariationWidgetBase implements 
       '#ajax' => [
         'callback' => [get_class($this), 'ajaxRefresh'],
         'wrapper' => $form['#wrapper_id'],
+        // Prevent a jump to the top of the page.
+        'disable-refocus' => TRUE,
       ],
     ];
     if ($this->getSetting('label_display') == FALSE) {

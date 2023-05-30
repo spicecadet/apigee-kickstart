@@ -22,6 +22,7 @@ use Apigee\Edge\Exception\ApiException;
 use Drupal\apigee_m10n\Monetization;
 use Drupal\apigee_m10n\MonetizationInterface;
 use Drupal\user\RoleInterface;
+use Drupal\user\Entity\Role;
 
 /**
  * @file
@@ -63,6 +64,42 @@ function apigee_m10n_requirements($phase) {
     }
   }
 
+  // Should not be able to install if organization is not monetized.
+  if ($phase === 'install') {
+    $message = t("Apigee Monetization module functionality is not available for the organization used.");
+    $monetized = TRUE;
+
+    try {
+      /** @var \Drupal\apigee_edge\SDKConnectorInterface $sdk_connector */
+      $sdk_connector = \Drupal::service('apigee_edge.sdk_connector');
+      $org_controller = \Drupal::service('apigee_edge.controller.organization');
+      /* @var \Apigee\Edge\Api\Management\Entity\Organization $organization */
+      $organization = $org_controller->load($sdk_connector->getOrganization());
+
+      // Check if org is ApigeeX.
+      if ($organization && ('CLOUD' === $organization->getRuntimeType() || 'HYBRID' === $organization->getRuntimeType())) {
+        if (!$organization->getAddonsConfig() || !$organization->getAddonsConfig()->getMonetizationConfig() || (FALSE === $organization->getAddonsConfig()->getMonetizationConfig()->getEnabled())) {
+          $monetized = FALSE;
+        }
+      }
+      elseif ($organization && !$organization->getPropertyValue('features.isMonetizationEnabled')) {
+        $monetized = FALSE;
+      }
+    }
+    catch (\Exception $exception) {
+      // If not able to connect to Apigee Edge.
+      $monetized = FALSE;
+    }
+
+    if (FALSE === $monetized) {
+      $requirements['apigee_monetization_not_supported'] = [
+        'title' => t('Apigee Monetization'),
+        'description' => $message,
+        'severity' => REQUIREMENT_ERROR,
+      ];
+    }
+  }
+
   return $requirements;
 }
 
@@ -74,4 +111,66 @@ function apigee_m10n_install() {
   if (Drupal::moduleHandler()->moduleExists('user')) {
     user_role_grant_permissions(RoleInterface::AUTHENTICATED_ID, MonetizationInterface::DEFAULT_AUTHENTICATED_PERMISSIONS);
   }
+}
+
+/**
+ * Diable payment funding field from view display.
+ */
+function apigee_m10n_update_8201(&$sandbox) {
+  $display_repository = \Drupal::service('entity_display.repository');
+  // Get the default view display for xrateplan.
+  $view_display = $display_repository->getViewDisplay('xrate_plan', 'xrate_plan', 'default');
+  $view_display->removeComponent('paymentFundingModel')->save();
+}
+
+/**
+ * Revoke the permission added for ApigeeX.
+ */
+function apigee_m10n_update_8202(&$sandbox) {
+  $roles = Role::loadMultiple();
+  $updatePermissions = [
+    "view own purchased_product" => "view own purchased_plan",
+    "view any purchased_product" => "view any purchased_plan",
+    "update own purchased_product" => "update own purchased_plan",
+    "update any purchased_product" => "update any purchased_plan",
+    "view xrate_plan" => "view rate_plan",
+    "view xrate_plan as anyone" => "view rate_plan as anyone",
+    "purchase xrate_plan" => "purchase rate_plan",
+    "purchase xrate_plan as anyone" => "purchase rate_plan as anyone"
+  ];
+  foreach ($roles as $rid) {
+    $role_permissions = $rid->getPermissions();
+    foreach ($updatePermissions as $new_permission => $old_permission) {
+      if (in_array($new_permission, $role_permissions)) {
+      $rid->revokePermission($new_permission)->save();
+      $rid->grantPermission($old_permission)->save();
+      }
+    }
+  }
+  // Clear all caches.
+  drupal_flush_all_caches();
+}
+
+/**
+ * Updating apiProduct field display in xrate-plan default display mode and enabling 'view
+ * xproduct' permission for authenticated user.
+ */
+function apigee_m10n_update_8203(&$sandbox) {
+
+  $display_repository = \Drupal::service('entity_display.repository');
+  // Get the default view display for xrateplan.
+  $view_display = $display_repository->getViewDisplay('xrate_plan', 'xrate_plan', 'default');
+  if ($component = $view_display->getComponent('apiProduct')) {
+    $settings = [
+      'link' => false,
+    ];
+    $view_display->setComponent('apiProduct', ['settings' => $settings,] + $component)->save();
+  }
+
+  if (Drupal::moduleHandler()->moduleExists('user')) {
+    user_role_grant_permissions(RoleInterface::AUTHENTICATED_ID, ['view xproduct']);
+  }
+
+  // Clear all caches.
+  drupal_flush_all_caches();
 }

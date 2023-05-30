@@ -43,7 +43,8 @@ class ApiDocsJsonApi extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
+    'apigee_edge',
     'apigee_api_catalog',
     'jsonapi',
     'basic_auth',
@@ -66,7 +67,7 @@ class ApiDocsJsonApi extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $nodeStorage = $this->container->get('entity_type.manager')->getStorage('node');
@@ -213,7 +214,7 @@ class ApiDocsJsonApi extends BrowserTestBase {
       return strcmp($a['attributes']['title'], $b['attributes']['title']);
     });
     for ($i = 0; $i < count($apidocs_response); $i++) {
-      $this->assertEqual($apidocs_expected[$i]->label(), $apidocs_response[$i]['attributes']['title']);
+      $this->assertEquals($apidocs_expected[$i]->label(), $apidocs_response[$i]['attributes']['title']);
     }
     // Make sure the count is the same.
     $this->assertCount(count($apidocs_expected), $apidocs_response, 'Count of API Docs returned does not match count of expected.');

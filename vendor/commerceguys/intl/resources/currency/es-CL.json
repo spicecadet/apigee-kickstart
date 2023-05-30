@@ -14,6 +14,9 @@
 	"ETB": {
 		"name": "bir"
 	},
+	"VED": {
+		"name": "Bolívar Soberano"
+	},
 	"VES": {
 		"name": "bolívar venezolano"
 	},
@@ -66,7 +69,7 @@
 		"name": "dinar argelino"
 	},
 	"BHD": {
-		"name": "dinar bahreiní"
+		"name": "dinar bareiní"
 	},
 	"IQD": {
 		"name": "dinar iraquí"
@@ -247,9 +250,6 @@
 	"AOA": {
 		"name": "kuanza"
 	},
-	"HRK": {
-		"name": "kuna"
-	},
 	"MWK": {
 		"name": "kwacha malauí"
 	},
@@ -272,7 +272,7 @@
 		"name": "leu rumano"
 	},
 	"BGN": {
-		"name": "lev búlgaro"
+		"name": "leva búlgara"
 	},
 	"SHP": {
 		"name": "libra de Santa Elena"
@@ -308,7 +308,7 @@
 		"name": "lira turca"
 	},
 	"LSL": {
-		"name": "loti lesothense"
+		"name": "loti lesotense"
 	},
 	"AZN": {
 		"name": "manat azerbaiyano"
@@ -431,6 +431,9 @@
 	"SCR": {
 		"name": "rupia seychellense"
 	},
+	"SLE": {
+		"name": "Sierra Leonean Leone"
+	},
 	"PEN": {
 		"name": "sol peruano"
 	},
@@ -450,7 +453,7 @@
 		"name": "tala"
 	},
 	"KZT": {
-		"name": "tenge kazako"
+		"name": "tenge kazajo"
 	},
 	"MNT": {
 		"name": "tugrik"

@@ -39,7 +39,7 @@
           $this.addClass(hClass);
 
           // Toggle secret.
-          $(this).find('.secret__toggle').on('click', function (event) {
+          $(once('apigee_edge_secret', '.secret__toggle', this)).on('click', function (event) {
             let index = $(this).closest(appElWrapper).find('.secret__toggle').index(this);
             let wrapperIndex = $wrapper.data('app-container-index');
             event.preventDefault();
@@ -49,7 +49,7 @@
             }
             else {
               $el.html(loader);
-              callEndpoint($wrapper.data('team'), $wrapper.data('app'), function(data) {
+              callEndpoint($wrapper.data('app-keys-url'), function(data) {
                 $el.html(data[wrapperIndex][index]);
               });
             }
@@ -57,10 +57,10 @@
 
           // Copy to clipboard.
           let $copy = $(this).find('.secret__copy');
-          $copy.find('button').on('click', function (event) {
+          $(once('copybutton', 'button', this)).on('click', function (event) {
             let index = $(this).closest(appElWrapper).find('.secret__copy button').index(this);
             let wrapperIndex = $wrapper.closest('fieldset').parent().find('fieldset').index($(this).closest('fieldset'));
-            callEndpoint($wrapper.data('team'), $wrapper.data('app'), function(data) {
+            callEndpoint($wrapper.data('app-keys-url'), function(data) {
               copyToClipboard(data[wrapperIndex][index]);
               $copy.find('.badge').fadeIn().delay(1000).fadeOut();
             });
@@ -99,11 +99,7 @@
   /**
    * Get credentials based on the app name.
    */
-  function callEndpoint(teamApp,  app, callback) {
-    var endpoint = drupalSettings.path.baseUrl + 'user/' + drupalSettings.currentUser + '/apps/' + app + '/api-keys';
-    if (teamApp !== undefined && teamApp !== 0 && teamApp !== '') {
-      endpoint = drupalSettings.path.baseUrl + 'teams/' + teamApp + '/apps/' + app + '/api-keys';
-    }
+  function callEndpoint(endpoint, callback) {
     $.get(endpoint, function(data) {
       callback(data);
     });

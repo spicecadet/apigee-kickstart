@@ -52,6 +52,9 @@
 	"BGN": {
 		"name": "Bolgar lewi"
 	},
+	"VED": {
+		"name": "Bolívar Soberano"
+	},
 	"BOB": {
 		"name": "Boliwiýa boliwianosy"
 	},
@@ -169,9 +172,6 @@
 		"name": "Hindi rupiýasy",
 		"symbol": "₹"
 	},
-	"HRK": {
-		"name": "Horwat kunasy"
-	},
 	"CNY": {
 		"name": "Hytaý ýuany",
 		"symbol": "CN¥"
@@ -246,7 +246,7 @@
 		"name": "Laos kipi"
 	},
 	"LSL": {
-		"name": "Lesotho Loti"
+		"name": "Lesoto lotisi"
 	},
 	"LRD": {
 		"name": "Liberiýa dollary"
@@ -374,6 +374,9 @@
 	},
 	"SCR": {
 		"name": "Seýşel rupiýasy"
+	},
+	"SLE": {
+		"name": "Sierra Leonean Leone"
 	},
 	"SGD": {
 		"name": "Singapur dollary"

@@ -198,6 +198,11 @@ function commerce_promotion_update_8208() {
     ->setLabel(t('Created'))
     ->setTranslatable(TRUE)
     ->setDescription(t('The time when the promotion was created.'));
+  $has_content_translation_field = $definition_update_manager
+    ->getFieldStorageDefinition('content_translation_created', 'commerce_promotion');
+  if ($has_content_translation_field) {
+    $created->setInitialValueFromField('content_translation_created');
+  }
   $definition_update_manager->installFieldStorageDefinition('created', 'commerce_promotion', 'commerce_promotion', $created);
 
   $changed = BaseFieldDefinition::create('changed')
@@ -205,17 +210,32 @@ function commerce_promotion_update_8208() {
     ->setTranslatable(TRUE)
     ->setDescription(t('The time when the promotion was last edited.'))
     ->setDisplayConfigurable('view', TRUE);
+  $has_content_translation_field = $definition_update_manager
+    ->getFieldStorageDefinition('content_translation_changed', 'commerce_promotion');
+  if ($has_content_translation_field) {
+    $created->setInitialValueFromField('content_translation_changed');
+  }
   $definition_update_manager->installFieldStorageDefinition('changed', 'commerce_promotion', 'commerce_promotion', $changed);
 
   $created = BaseFieldDefinition::create('created')
     ->setLabel(t('Created'))
     ->setDescription(t('The time when the coupon was created.'));
+  $has_content_translation_field = $definition_update_manager
+    ->getFieldStorageDefinition('content_translation_created', 'commerce_promotion_coupon');
+  if ($has_content_translation_field) {
+    $created->setInitialValueFromField('content_translation_created');
+  }
   $definition_update_manager->installFieldStorageDefinition('created', 'commerce_promotion_coupon', 'commerce_promotion', $created);
 
   $changed = BaseFieldDefinition::create('changed')
     ->setLabel(t('Changed'))
     ->setDescription(t('The time when the coupon was last edited.'))
     ->setDisplayConfigurable('view', TRUE);
+  $has_content_translation_field = $definition_update_manager
+    ->getFieldStorageDefinition('content_translation_changed', 'commerce_promotion_coupon');
+  if ($has_content_translation_field) {
+    $created->setInitialValueFromField('content_translation_changed');
+  }
   $definition_update_manager->installFieldStorageDefinition('changed', 'commerce_promotion_coupon', 'commerce_promotion', $changed);
 }
 
@@ -271,5 +291,86 @@ function commerce_promotion_update_8209() {
     }
     $role->grantPermission("update any commerce_promotion");
     $role->save();
+  }
+}
+
+/**
+ * Mark the promotion "stores" field as optional.
+ */
+function commerce_promotion_update_8210() {
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+}
+
+/**
+ * Add start & end dates to coupons.
+ */
+function commerce_promotion_update_8211() {
+  $fields['start_date'] = BaseFieldDefinition::create('datetime')
+    ->setLabel(t('Start date'))
+    ->setDescription(t('The date the coupon becomes valid.'))
+    ->setRequired(FALSE)
+    ->setSetting('datetime_type', 'datetime')
+    ->setSetting('datetime_optional_label', t('Provide a start date'))
+    ->setDefaultValueCallback('Drupal\commerce_promotion\Entity\Promotion::getDefaultStartDate')
+    ->setDisplayOptions('form', [
+      'type' => 'commerce_store_datetime',
+      'weight' => 5,
+    ]);
+
+  $fields['end_date'] = BaseFieldDefinition::create('datetime')
+    ->setLabel(t('End date'))
+    ->setDescription(t('The date after which the coupon is invalid.'))
+    ->setRequired(FALSE)
+    ->setSetting('datetime_type', 'datetime')
+    ->setSetting('datetime_optional_label', t('Provide an end date'))
+    ->setDisplayOptions('form', [
+      'type' => 'commerce_store_datetime',
+      'weight' => 6,
+    ]);
+
+  $definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+  foreach ($fields as $name => $definition) {
+    // Skip installing the field storage definition if the field already exists.
+    // This could happen if the commerce_coupon_conditions module is installed
+    // on the site for example.
+    if ($definition_update_manager->getFieldStorageDefinition($name, 'commerce_promotion_coupon')) {
+      continue;
+    }
+    $definition_update_manager->installFieldStorageDefinition($name, 'commerce_promotion_coupon', 'commerce_promotion', $definition);
+  }
+}
+
+/**
+ * Allow specifying whether a promotion requires a coupon code to apply.
+ */
+function commerce_promotion_update_8212() {
+  $definition = BaseFieldDefinition::create('boolean')
+    ->setLabel(t('Require a coupon to apply this promotion'))
+    ->setDefaultValue(FALSE)
+    ->setDisplayOptions('form', [
+      'type' => 'boolean_checkbox',
+      'settings' => [
+        'display_label' => TRUE,
+      ],
+    ])
+    ->setDisplayConfigurable('view', TRUE)
+    ->setDisplayConfigurable('form', TRUE);
+
+  $definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+  $definition_update_manager->installFieldStorageDefinition('require_coupon', 'commerce_promotion', 'commerce_promotion', $definition);
+}
+
+/**
+ * Uninstall the created / changed fields added by content_translation.
+ */
+function commerce_promotion_update_8213() {
+  $definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+
+  foreach (['content_translation_created', 'content_translation_changed'] as $field_name) {
+    foreach (['commerce_promotion', 'commerce_promotion_coupon'] as $entity_type_id) {
+      if ($field_storage_definition = $definition_update_manager->getFieldStorageDefinition($field_name, $entity_type_id)) {
+        $definition_update_manager->uninstallFieldStorageDefinition($field_storage_definition);
+      }
+    }
   }
 }

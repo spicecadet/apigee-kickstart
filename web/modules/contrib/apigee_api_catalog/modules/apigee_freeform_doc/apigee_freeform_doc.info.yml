@@ -1,0 +1,14 @@
+name: Free-form documentation for Apigee
+type: module
+description: Free-form documentation for Apigee
+package: Apigee (Experimental)
+core_version_requirement: ^9
+dependencies:
+  - apigee_api_catalog
+  - file
+  - text
+
+# Information added by Drupal.org packaging script on 2022-09-29
+version: '3.0.3'
+project: 'apigee_api_catalog'
+datestamp: 1664462000

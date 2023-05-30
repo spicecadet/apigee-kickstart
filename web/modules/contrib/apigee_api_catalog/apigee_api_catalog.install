@@ -134,3 +134,24 @@ function apigee_api_catalog_update_8806() {
 function apigee_api_catalog_update_8807() {
   return \Drupal::service('apigee_api_catalog.updates')->update8807();
 }
+
+/**
+ * Add API Product field.
+ */
+function apigee_api_catalog_update_8808() {
+  return \Drupal::service('apigee_api_catalog.updates')->update8808();
+}
+
+/**
+ * Rename API Doc content type as OpenAPI Doc.
+ */
+function apigee_api_catalog_update_8809() {
+  return \Drupal::service('apigee_api_catalog.updates')->update8809();
+}
+
+/**
+ * Removed yml extension from field_apidoc_file_link and field_apidoc_spec allowed values.
+ */
+function apigee_api_catalog_update_8810() {
+  return \Drupal::service('apigee_api_catalog.updates')->update8810();
+}

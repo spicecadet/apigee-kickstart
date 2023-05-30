@@ -51,6 +51,14 @@ abstract class CheckoutFlowBase extends PluginBase implements CheckoutFlowInterf
   protected $order;
 
   /**
+   * The order ID (used for serialization).
+   *
+   * @var string|int|null
+   */
+  // phpcs:ignore Drupal.Classes.PropertyDeclaration
+  protected $_orderId;
+
+  /**
    * The parent config entity.
    *
    * Not available while the plugin is being configured.
@@ -58,6 +66,14 @@ abstract class CheckoutFlowBase extends PluginBase implements CheckoutFlowInterf
    * @var \Drupal\commerce_checkout\Entity\CheckoutFlowInterface
    */
   protected $parentEntity;
+
+  /**
+   * The ID of the parent entity (used for serialization).
+   *
+   * @var string|int|null
+   */
+  // phpcs:ignore Drupal.Classes.PropertyDeclaration
+  protected $_parentEntityId;
 
   /**
    * Static cache of visible steps.
@@ -201,6 +217,16 @@ abstract class CheckoutFlowBase extends PluginBase implements CheckoutFlowInterf
       'commerce_order' => $this->order->id(),
       'step' => $step_id,
     ])->toString());
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getStepId($requested_step_id = NULL) {
+    // Customers can't edit orders that have already been placed.
+    if ($this->order->getState()->getId() != 'draft') {
+      return 'complete';
+    }
   }
 
   /**
@@ -426,7 +452,7 @@ abstract class CheckoutFlowBase extends PluginBase implements CheckoutFlowInterf
     if ($step_id == 'complete' && $this->order->getState()->getId() == 'draft') {
       // Notify other modules.
       $event = new OrderEvent($this->order);
-      $this->eventDispatcher->dispatch(CheckoutEvents::COMPLETION, $event);
+      $this->eventDispatcher->dispatch($event, CheckoutEvents::COMPLETION);
       $this->order->getState()->applyTransitionById('place');
     }
   }

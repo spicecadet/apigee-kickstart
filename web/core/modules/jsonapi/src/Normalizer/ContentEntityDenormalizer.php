@@ -2,6 +2,8 @@
 
 namespace Drupal\jsonapi\Normalizer;
 
+@trigger_error('\Drupal\jsonapi\Normalizer\ContentEntityDenormalizer has been deprecated in favor of \Drupal\jsonapi\Normalizer\FieldableEntityDenormalizer. Use that instead.');
+
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\jsonapi\ResourceType\ResourceType;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
@@ -86,6 +88,13 @@ final class ContentEntityDenormalizer extends EntityDenormalizerBase {
     }
 
     return $data_internal;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function hasCacheableSupportsMethod(): bool {
+    return TRUE;
   }
 
 }

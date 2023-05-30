@@ -2,7 +2,7 @@
 
 namespace Drupal\commerce\EventSubscriber;
 
-use Symfony\Component\HttpKernel\Event\FilterResponseEvent;
+use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
@@ -22,11 +22,11 @@ class ResponseSubscriber implements EventSubscriberInterface {
   /**
    * Sets extra X-Commerce-Core header on successful responses.
    *
-   * @param \Symfony\Component\HttpKernel\Event\FilterResponseEvent $event
+   * @param \Symfony\Component\HttpKernel\Event\ResponseEvent $event
    *   The event to process.
    */
-  public function onResponse(FilterResponseEvent $event) {
-    if (!$event->isMasterRequest()) {
+  public function onResponse(ResponseEvent $event) {
+    if (!$event->isMainRequest()) {
       return;
     }
     $response = $event->getResponse();

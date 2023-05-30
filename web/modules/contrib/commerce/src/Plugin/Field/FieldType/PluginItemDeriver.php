@@ -27,13 +27,10 @@ class PluginItemDeriver extends DeriverBase implements ContainerDeriverInterface
   /**
    * Constructs a new PluginItemDeriver object.
    *
-   * @param string $base_plugin_id
-   *   The base plugin ID.
    * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
    *   The event dispatcher.
    */
-  public function __construct($base_plugin_id, EventDispatcherInterface $event_dispatcher) {
-    $this->basePluginId = $base_plugin_id;
+  public function __construct(EventDispatcherInterface $event_dispatcher) {
     $this->eventDispatcher = $event_dispatcher;
   }
 
@@ -42,7 +39,6 @@ class PluginItemDeriver extends DeriverBase implements ContainerDeriverInterface
    */
   public static function create(ContainerInterface $container, $base_plugin_id) {
     return new static(
-      $base_plugin_id,
       $container->get('event_dispatcher')
     );
   }
@@ -58,7 +54,7 @@ class PluginItemDeriver extends DeriverBase implements ContainerDeriverInterface
     // Core has no way to list plugin types, so each referenceable plugin
     // type needs to register itself via the event.
     $event = new ReferenceablePluginTypesEvent($plugin_types);
-    $this->eventDispatcher->dispatch(CommerceEvents::REFERENCEABLE_PLUGIN_TYPES, $event);
+    $this->eventDispatcher->dispatch($event, CommerceEvents::REFERENCEABLE_PLUGIN_TYPES);
     $plugin_types = $event->getPluginTypes();
 
     foreach ($plugin_types as $plugin_type => $label) {

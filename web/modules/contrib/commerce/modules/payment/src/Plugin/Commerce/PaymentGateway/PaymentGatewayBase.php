@@ -45,6 +45,14 @@ abstract class PaymentGatewayBase extends PluginBase implements PaymentGatewayIn
   protected $parentEntity;
 
   /**
+   * The ID of the parent entity (used for serialization).
+   *
+   * @var string|int|null
+   */
+  // phpcs:ignore Drupal.Classes.PropertyDeclaration
+  protected $_parentEntityId;
+
+  /**
    * The ID of the parent config entity.
    *
    * @deprecated in commerce:8.x-2.16 and is removed from commerce:3.x.
@@ -220,6 +228,9 @@ abstract class PaymentGatewayBase extends PluginBase implements PaymentGatewayIn
    * {@inheritdoc}
    */
   public function getSupportedModes() {
+    // If modes are not explicitly set on the payment gateway plugin, supported
+    // modes will default to test and live in the payment gateway annotation.
+    // @see \Drupal\commerce_payment\Annotation\CommercePaymentGateway
     return $this->pluginDefinition['modes'];
   }
 
@@ -472,19 +483,9 @@ abstract class PaymentGatewayBase extends PluginBase implements PaymentGatewayIn
   }
 
   /**
-   * Gets the remote customer ID for the given user.
-   *
-   * The remote customer ID is specific to a payment gateway instance
-   * in the configured mode. This allows the gateway to skip test customers
-   * after the gateway has been switched to live mode.
-   *
-   * @param \Drupal\user\UserInterface $account
-   *   The user account.
-   *
-   * @return string
-   *   The remote customer ID, or NULL if none found.
+   * {@inheritDoc}
    */
-  protected function getRemoteCustomerId(UserInterface $account) {
+  public function getRemoteCustomerId(UserInterface $account) {
     $remote_id = NULL;
     if ($account->isAuthenticated()) {
       $provider = $this->parentEntity->id() . '|' . $this->getMode();

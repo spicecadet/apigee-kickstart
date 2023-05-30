@@ -2,13 +2,14 @@
 
 namespace Drupal\Tests\smtp\Unit;
 
+use Prophecy\PhpUnit\ProphecyTrait;
 use Drupal\Component\Utility\EmailValidatorInterface;
 use Drupal\Core\Config\Config;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\FormState;
 use Drupal\Core\Mail\MailManagerInterface;
-use Drupal\Core\Messenger\Messenger;
+use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\smtp\Form\SMTPConfigForm;
@@ -23,10 +24,11 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 class SMTPConfigFormTest extends UnitTestCase {
 
+  use ProphecyTrait;
   /**
    * Test setup.
    */
-  public function setup() {
+  public function setup(): void {
     $this->mockConfigFactory = $this->prophesize(ConfigFactoryInterface::class);
     $this->mockConfig = $this->prophesize(Config::class);
     $this->mockConfigFactory->get('smtp.settings')->willReturn($this->mockConfig->reveal());
@@ -36,7 +38,7 @@ class SMTPConfigFormTest extends UnitTestCase {
     $this->mockConfigSystemSite->get('name')->willReturn('Site name');
     $this->mockConfigFactory->get('system.site')->willReturn($this->mockConfigSystemSite->reveal());
 
-    $this->mockMessenger = $this->prophesize(Messenger::class);
+    $this->mockMessenger = $this->prophesize(MessengerInterface::class);
     $this->mockEmailValidator = $this->prophesize(EmailValidatorInterface::class);
     $this->mockCurrentUser = $this->prophesize(AccountProxyInterface::class);
     $this->mockMailManager = $this->prophesize(MailManagerInterface::class);
@@ -79,6 +81,7 @@ class SMTPConfigFormTest extends UnitTestCase {
     $this->mockConfig->get('smtp_client_helo')->willReturn('');
     $this->mockConfig->get('smtp_debugging')->willReturn('');
     $this->mockConfig->get('smtp_keepalive')->willReturn(FALSE);
+    $this->mockConfig->get('smtp_reroute_address')->willReturn('');
   }
 
   /**

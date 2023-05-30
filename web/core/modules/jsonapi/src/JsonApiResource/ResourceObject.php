@@ -8,7 +8,10 @@ use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\RevisionableInterface;
+use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\TypedData\TypedDataInternalPropertiesHelper;
 use Drupal\Core\Url;
 use Drupal\jsonapi\JsonApiSpec;
@@ -61,6 +64,13 @@ class ResourceObject implements CacheableDependencyInterface, ResourceIdentifier
   protected $links;
 
   /**
+   * The resource language.
+   *
+   * @var \Drupal\Core\Language\LanguageInterface
+   */
+  protected $language;
+
+  /**
    * ResourceObject constructor.
    *
    * @param \Drupal\Core\Cache\CacheableDependencyInterface $cacheability
@@ -76,8 +86,10 @@ class ResourceObject implements CacheableDependencyInterface, ResourceIdentifier
    *   An array of the resource object's fields, keyed by public field name.
    * @param \Drupal\jsonapi\JsonApiResource\LinkCollection $links
    *   The links for the resource object.
+   * @param \Drupal\Core\Language\LanguageInterface|null $language
+   *   (optional) The resource language.
    */
-  public function __construct(CacheableDependencyInterface $cacheability, ResourceType $resource_type, $id, $revision_id, array $fields, LinkCollection $links) {
+  public function __construct(CacheableDependencyInterface $cacheability, ResourceType $resource_type, $id, $revision_id, array $fields, LinkCollection $links, LanguageInterface $language = NULL) {
     assert(is_null($revision_id) || $resource_type->isVersionable());
     $this->setCacheability($cacheability);
     $this->resourceType = $resource_type;
@@ -85,6 +97,10 @@ class ResourceObject implements CacheableDependencyInterface, ResourceIdentifier
     $this->versionIdentifier = $revision_id ? 'id:' . $revision_id : NULL;
     $this->fields = $fields;
     $this->links = $links->withContext($this);
+
+    // If the specified language empty it falls back the same way as in the entity system
+    // @see \Drupal\Core\Entity\EntityBase::language()
+    $this->language = $language ?: new Language(['id' => LanguageInterface::LANGCODE_NOT_SPECIFIED]);
   }
 
   /**
@@ -109,7 +125,8 @@ class ResourceObject implements CacheableDependencyInterface, ResourceIdentifier
       $entity->uuid(),
       $resource_type->isVersionable() && $entity instanceof RevisionableInterface ? $entity->getRevisionId() : NULL,
       static::extractFieldsFromEntity($resource_type, $entity),
-      static::buildLinksFromEntity($resource_type, $entity, $links ?: new LinkCollection([]))
+      static::buildLinksFromEntity($resource_type, $entity, $links ?: new LinkCollection([])),
+      $entity->language()
     );
   }
 
@@ -151,6 +168,16 @@ class ResourceObject implements CacheableDependencyInterface, ResourceIdentifier
    */
   public function getFields() {
     return $this->fields;
+  }
+
+  /**
+   * Gets the ResourceObject's language.
+   *
+   * @return \Drupal\Core\Language\LanguageInterface
+   *   The resource language.
+   */
+  public function getLanguage(): LanguageInterface {
+    return $this->language;
   }
 
   /**
@@ -212,10 +239,14 @@ class ResourceObject implements CacheableDependencyInterface, ResourceIdentifier
    *   entity, the fields will be scalar values or arrays.
    */
   protected static function extractFieldsFromEntity(ResourceType $resource_type, EntityInterface $entity) {
-    assert($entity instanceof ContentEntityInterface || $entity instanceof ConfigEntityInterface);
-    return $entity instanceof ContentEntityInterface
-      ? static::extractContentEntityFields($resource_type, $entity)
-      : static::extractConfigEntityFields($resource_type, $entity);
+    if ($entity instanceof FieldableEntityInterface) {
+      return static::extractFieldableEntityFields($resource_type, $entity);
+    }
+    elseif ($entity instanceof ConfigEntityInterface) {
+      return static::extractConfigEntityFields($resource_type, $entity);
+    }
+
+    return [];
   }
 
   /**
@@ -268,12 +299,32 @@ class ResourceObject implements CacheableDependencyInterface, ResourceIdentifier
    * @param \Drupal\jsonapi\ResourceType\ResourceType $resource_type
    *   The JSON:API resource type of the given entity.
    * @param \Drupal\Core\Entity\ContentEntityInterface $entity
-   *   The config entity from which fields should be extracted.
+   *   The content entity from which fields should be extracted.
+   *
+   * @return \Drupal\Core\Field\FieldItemListInterface[]
+   *   The fields extracted from a content entity.
+   *
+   * @deprecated in Drupal 8.8.x and will be removed before Drupal 9.0.0.
+   * Use \Drupal\jsonapi\JsonApiResource\ResourceObject::extractFieldableEntityFields()
+   * instead.
+   */
+  protected static function extractContentEntityFields(ResourceType $resource_type, ContentEntityInterface $entity) {
+    @trigger_error('\Drupal\jsonapi\JsonApiResource\ResourceObject::extractContentEntityFields() has been deprecated in favor of \Drupal\jsonapi\JsonApiResource\ResourceObject::extractFieldableEntityFields(). Use that instead.');
+    return static::extractFieldableEntityFields($resource_type, $entity);
+  }
+
+  /**
+   * Extracts a fieldable entity's fields.
+   *
+   * @param \Drupal\jsonapi\ResourceType\ResourceType $resource_type
+   *   The JSON:API resource type of the given entity.
+   * @param \Drupal\Core\Entity\FieldableEntityInterface $entity
+   *   The fieldable entity from which fields should be extracted.
    *
    * @return \Drupal\Core\Field\FieldItemListInterface[]
    *   The fields extracted from a content entity.
    */
-  protected static function extractContentEntityFields(ResourceType $resource_type, ContentEntityInterface $entity) {
+  protected static function extractFieldableEntityFields(ResourceType $resource_type, FieldableEntityInterface $entity) {
     $output = [];
     $fields = TypedDataInternalPropertiesHelper::getNonInternalProperties($entity->getTypedData());
     // Filter the array based on the field names.
@@ -348,7 +399,7 @@ class ResourceObject implements CacheableDependencyInterface, ResourceIdentifier
     });
     // Return a sub-array of $output containing the keys in $enabled_fields.
     $input = array_intersect_key($fields, array_flip($enabled_field_names));
-    /* @var \Drupal\Core\Config\Entity\ConfigEntityInterface $entity */
+    /** @var \Drupal\Core\Config\Entity\ConfigEntityInterface $entity */
     foreach ($input as $field_name => $field_value) {
       $public_field_name = $resource_type->getPublicName($field_name);
       $enabled_public_fields[$public_field_name] = $field_value;

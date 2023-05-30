@@ -19,7 +19,7 @@ class ProductAttributeValueFilterTest extends ViewsKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'address',
     'commerce',
     'commerce_price',
@@ -37,7 +37,7 @@ class ProductAttributeValueFilterTest extends ViewsKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp($import_test_views);
 
     ViewTestData::createTestViews(self::class, ['commerce_product_test']);

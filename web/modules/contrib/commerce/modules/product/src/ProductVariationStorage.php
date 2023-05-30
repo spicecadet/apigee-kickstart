@@ -6,17 +6,8 @@ use Drupal\commerce\CommerceContentEntityStorage;
 use Drupal\commerce_product\Entity\ProductInterface;
 use Drupal\commerce_product\Event\FilterVariationsEvent;
 use Drupal\commerce_product\Event\ProductEvents;
-use Drupal\Core\Cache\CacheBackendInterface;
-use Drupal\Core\Cache\MemoryCache\MemoryCacheInterface;
-use Drupal\Core\Database\Connection;
-use Drupal\Core\Entity\EntityFieldManagerInterface;
-use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Language\LanguageManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
-use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Defines the product variation storage.
@@ -31,51 +22,19 @@ class ProductVariationStorage extends CommerceContentEntityStorage implements Pr
   protected $requestStack;
 
   /**
-   * Constructs a new ProductVariationStorage object.
+   * Static cache of enabled variations.
    *
-   * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
-   *   The entity type definition.
-   * @param \Drupal\Core\Database\Connection $database
-   *   The database connection to be used.
-   * @param \Drupal\Core\Entity\EntityFieldManagerInterface $entity_field_manager
-   *   The entity field manager.
-   * @param \Drupal\Core\Cache\CacheBackendInterface $cache
-   *   The cache backend to be used.
-   * @param \Drupal\Core\Language\LanguageManagerInterface $language_manager
-   *   The language manager.
-   * @param \Drupal\Core\Cache\MemoryCache\MemoryCacheInterface $memory_cache
-   *   The memory cache.
-   * @param \Drupal\Core\Entity\EntityTypeBundleInfoInterface $entity_type_bundle_info
-   *   The entity type bundle info.
-   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
-   *   The entity type manager.
-   * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
-   *   The event dispatcher.
-   * @param \Symfony\Component\HttpFoundation\RequestStack $request_stack
-   *   The request stack.
+   * @var array
    */
-  public function __construct(EntityTypeInterface $entity_type, Connection $database, EntityFieldManagerInterface $entity_field_manager, CacheBackendInterface $cache, LanguageManagerInterface $language_manager, MemoryCacheInterface $memory_cache, EntityTypeBundleInfoInterface $entity_type_bundle_info, EntityTypeManagerInterface $entity_type_manager, EventDispatcherInterface $event_dispatcher, RequestStack $request_stack) {
-    parent::__construct($entity_type, $database, $entity_field_manager, $cache, $language_manager, $memory_cache, $entity_type_bundle_info, $entity_type_manager, $event_dispatcher);
-
-    $this->requestStack = $request_stack;
-  }
+  protected $enabledVariations = [];
 
   /**
    * {@inheritdoc}
    */
   public static function createInstance(ContainerInterface $container, EntityTypeInterface $entity_type) {
-    return new static(
-      $entity_type,
-      $container->get('database'),
-      $container->get('entity_field.manager'),
-      $container->get('cache.entity'),
-      $container->get('language_manager'),
-      $container->get('entity.memory_cache'),
-      $container->get('entity_type.bundle.info'),
-      $container->get('entity_type.manager'),
-      $container->get('event_dispatcher'),
-      $container->get('request_stack')
-    );
+    $instance = parent::createInstance($container, $entity_type);
+    $instance->requestStack = $container->get('request_stack');
+    return $instance;
   }
 
   /**
@@ -109,17 +68,23 @@ class ProductVariationStorage extends CommerceContentEntityStorage implements Pr
    * {@inheritdoc}
    */
   public function loadEnabled(ProductInterface $product) {
+    // Check if the enabled variations were already determined for this product.
+    if (array_key_exists($product->id(), $this->enabledVariations)) {
+      return $this->enabledVariations[$product->id()];
+    }
     $ids = [];
     foreach ($product->variations as $variation) {
       $ids[$variation->target_id] = $variation->target_id;
     }
     // Speed up loading by filtering out the IDs of disabled variations.
     $query = $this->getQuery()
+      ->accessCheck(TRUE)
       ->addTag('entity_access')
       ->condition('status', TRUE)
       ->condition('variation_id', $ids, 'IN');
     $result = $query->execute();
     if (empty($result)) {
+      $this->enabledVariations[$product->id()] = [];
       return [];
     }
     // Restore the original sort order.
@@ -129,7 +94,7 @@ class ProductVariationStorage extends CommerceContentEntityStorage implements Pr
     $enabled_variations = $this->loadMultiple($result);
     // Allow modules to apply own filtering (based on date, stock, etc).
     $event = new FilterVariationsEvent($product, $enabled_variations);
-    $this->eventDispatcher->dispatch(ProductEvents::FILTER_VARIATIONS, $event);
+    $this->eventDispatcher->dispatch($event, ProductEvents::FILTER_VARIATIONS);
     $enabled_variations = $event->getVariations();
     // Filter out variations that can't be accessed.
     foreach ($enabled_variations as $variation_id => $enabled_variation) {
@@ -137,6 +102,9 @@ class ProductVariationStorage extends CommerceContentEntityStorage implements Pr
         unset($enabled_variations[$variation_id]);
       }
     }
+    // Populate the static cache so that the next time this method is called
+    // we don't perform the same expansive logic during the same request.
+    $this->enabledVariations[$product->id()] = $enabled_variations;
 
     return $enabled_variations;
   }

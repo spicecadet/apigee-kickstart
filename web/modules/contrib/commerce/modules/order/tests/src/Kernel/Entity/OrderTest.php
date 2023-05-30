@@ -4,6 +4,7 @@ namespace Drupal\Tests\commerce_order\Kernel\Entity;
 
 use Drupal\commerce_order\Adjustment;
 use Drupal\commerce_order\Entity\Order;
+use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Entity\OrderItem;
 use Drupal\commerce_price\Exception\CurrencyMismatchException;
 use Drupal\commerce_price\Price;
@@ -32,7 +33,7 @@ class OrderTest extends OrderKernelTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'commerce_order_test',
   ];
 
@@ -49,6 +50,7 @@ class OrderTest extends OrderKernelTestBase {
   /**
    * Tests the order entity and its methods.
    *
+   * @covers ::label
    * @covers ::getOrderNumber
    * @covers ::setOrderNumber
    * @covers ::getStore
@@ -143,10 +145,19 @@ class OrderTest extends OrderKernelTestBase {
       'store_id' => $this->store->id(),
     ]);
     $order->save();
+    $this->assertNull($order->label());
+    $order->set('state', 'draft');
+    $this->assertEquals('Draft 1', $order->label());
+    $order->set('state', 'completed');
+    // Test the label alteration with a test event subscriber.
+    $order->setData('custom_label', 'My custom label 1');
+    $this->assertEquals('My custom label 1', $order->label());
+    $order->unsetData('custom_label');
 
     $order->setOrderNumber(7);
     $this->assertEquals(7, $order->getOrderNumber());
     $this->assertFalse($order->isPaid());
+    $this->assertEquals('Order 7', $order->label());
 
     $order->setStore($this->store);
     $this->assertEquals($this->store, $order->getStore());
@@ -646,6 +657,37 @@ class OrderTest extends OrderKernelTestBase {
     ]);
     $another_order->save();
     $this->assertEquals(1, $another_order->getData('order_test_called'));
+  }
+
+  /**
+   * Tests that the order email is maintained for authenticated orders.
+   */
+  public function testEmailUpdate() {
+    $order = Order::create([
+      'type' => 'default',
+      'uid' => $this->user->id(),
+      'state' => 'draft',
+    ]);
+    $order->setRefreshState(OrderInterface::REFRESH_ON_LOAD);
+    $order->save();
+    $this->assertEquals($this->user->getEmail(), $order->getEmail());
+
+    // Update user email.
+    $this->user->setEmail('user@example.com');
+    $this->user->save();
+    /** @var \Drupal\commerce_order\Entity\OrderInterface $order */
+    $order = $this->reloadEntity($order);
+    // Order email updated.
+    $this->assertEquals('user@example.com', $order->getEmail());
+
+    // Set an arbitrary email to ensure it's not reverted by the order presave.
+    $order->setEmail('commerce@example.com');
+    $order->setStore($this->store);
+    // The order state is updated to "completed" since the email is maintained
+    // by the order presave logic for draft orders.
+    $order->set('state', 'completed');
+    $order->save();
+    $this->assertEquals('commerce@example.com', $order->getEmail());
   }
 
 }

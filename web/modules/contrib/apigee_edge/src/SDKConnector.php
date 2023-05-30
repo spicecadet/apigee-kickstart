@@ -250,13 +250,19 @@ class SDKConnector implements SDKConnectorInterface {
    */
   protected function userAgentPrefix(): string {
     if (NULL === self::$userAgentPrefix) {
-      $module_info = $this->infoParser->parse($this->moduleHandler->getModule('apigee_edge')->getPathname());
-      if (!isset($module_info['version'])) {
-        $module_info['version'] = '8.x-1.x-dev';
+      // apigee_edge module info.
+      $edge_module_info = $this->infoParser->parse($this->moduleHandler->getModule('apigee_edge')->getPathname());
+      if (!isset($edge_module_info['version'])) {
+        $edge_module_info['version'] = '2.x-dev';
       }
-      // TODO Change "DevPortal" to "Drupal module" later. It has been added for
-      // Apigee's convenience this way.
-      self::$userAgentPrefix = $module_info['name'] . ' DevPortal ' . $module_info['version'];
+      $user_agent_parts[] = $edge_module_info['name'] . '/' . $edge_module_info['version'];
+      $user_agent_parts[] = 'Drupal/' . \Drupal::VERSION;
+
+      // Get info from other modules.
+      $userAgent = $this->moduleHandler->invokeAll('apigee_edge_user_agent_string_alter', [&$user_agent_parts]);
+      $userAgent = !empty($userAgent) ? implode('; ', $userAgent) : implode('; ', $user_agent_parts);
+
+      self::$userAgentPrefix = $userAgent;
     }
 
     return self::$userAgentPrefix;

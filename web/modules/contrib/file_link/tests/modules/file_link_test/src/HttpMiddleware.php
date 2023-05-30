@@ -4,6 +4,7 @@ namespace Drupal\file_link_test;
 
 use Drupal\Core\Site\Settings;
 use GuzzleHttp\Promise\FulfilledPromise;
+use GuzzleHttp\Promise\PromiseInterface;
 use GuzzleHttp\Psr7\Response;
 use Psr\Http\Message\RequestInterface;
 
@@ -12,13 +13,26 @@ use Psr\Http\Message\RequestInterface;
  */
 class HttpMiddleware {
 
+  /**
+   * Recoding storage.
+   *
+   * @var array
+   */
   public static $recorder = [];
 
-  public static function getRequestCount($key) {
+  /**
+   * Records requests.
+   *
+   * @param string $key
+   *   An identifier key.
+   *
+   * @return int
+   *   The recorder value.
+   */
+  public static function getRequestCount(string $key): int {
     if (!isset(static::$recorder[$key])) {
       static::$recorder[$key] = 0;
     }
-
     return static::$recorder[$key];
   }
 
@@ -51,11 +65,15 @@ class HttpMiddleware {
   /**
    * Creates a promise for the file_link fixture request.
    *
-   * @param RequestInterface $request
+   * @param \Psr\Http\Message\RequestInterface $request
+   *   The HTTP request.
+   * @param array $fixture
+   *   The fixture.
    *
    * @return \GuzzleHttp\Promise\PromiseInterface
+   *   A promise instance.
    */
-  protected function createPromise(RequestInterface $request, $fixture) {
+  protected function createPromise(RequestInterface $request, array $fixture): PromiseInterface {
     // Create a response from the fixture.
     $response = new Response($fixture['status'] ?? 200, $fixture['headers'] ?? [], $fixture['body'] ?? NULL);
     return new FulfilledPromise($response);

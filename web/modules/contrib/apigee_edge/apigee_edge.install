@@ -24,6 +24,7 @@
 
 use Drupal\apigee_edge\OauthTokenFileStorage;
 use Drupal\apigee_edge\Plugin\EdgeKeyTypeInterface;
+use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Installer\InstallerKernel;
 use Drupal\Core\Url;
 use Drupal\user\RoleInterface;
@@ -39,6 +40,7 @@ function apigee_edge_requirements($phase) {
     if (!InstallerKernel::installationAttempted()) {
       $missing_mails = \Drupal::entityQuery('user')
         ->notExists('mail')
+        ->accessCheck(TRUE)
         ->condition('uid', '0', '<>')
         ->execute();
       if (!empty($missing_mails)) {
@@ -84,7 +86,8 @@ function apigee_edge_requirements($phase) {
       // Warning message in status report if using basic auth.
       try {
         if ($key && $key->getKeyType() instanceof EdgeKeyTypeInterface &&
-          $key->getKeyType()->getAuthenticationType($key) === EdgeKeyTypeInterface::EDGE_AUTH_TYPE_BASIC) {
+          $key->getKeyType()->getAuthenticationType($key) === EdgeKeyTypeInterface::EDGE_AUTH_TYPE_BASIC &&
+          $key->getKeyType()->getInstanceType($key) === EdgeKeyTypeInterface::INSTANCE_TYPE_PUBLIC) {
           $requirements['apigee_edge_http_basic_auth'] = [
             'title' => t('Apigee Edge'),
             'description' => t('Apigee Edge HTTP basic authentication will be deprecated. Please choose another authentication method. Visit the <a href=":url">Apigee Edge general settings</a> page to get more information.', [
@@ -334,4 +337,39 @@ function apigee_edge_update_8106() {
   $app_settings
     ->set('analytics_available_environments', [$app_settings->get('analytics_environment')])
     ->save(TRUE);
+}
+
+/**
+ * Remove OAuth token data file.
+ */
+function apigee_edge_update_8107() {
+  // Replaced unserialize with Json function.
+  // We do not want the serialize data so deleting the file.
+  $storage = \Drupal::service('apigee_edge.authentication.oauth_token_storage');
+  if ($storage instanceof OauthTokenFileStorage) {
+    $storage->removeTokenFile();
+  }
+}
+
+/**
+ * Update the field storage defination of Developer App.
+ */
+function apigee_edge_update_9001() {
+  $definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+  /** @var \Drupal\Core\Entity\EntityLastInstalledSchemaRepositoryInterface $last_installed_schema_repository */
+  $last_installed_schema_repository = \Drupal::service('entity.last_installed_schema.repository');
+  $entity_type_id = 'developer_app';
+  $entity_type = $definition_update_manager->getEntityType($entity_type_id);
+  $field_storage_definitions = $last_installed_schema_repository->getLastInstalledFieldStorageDefinitions($entity_type_id);
+
+  $field_storage_definitions['apiProducts'] = BaseFieldDefinition::create('string')
+    ->setName('apiproducts')
+    ->setTargetEntityTypeId($entity_type_id)
+    ->setTargetBundle(NULL)
+    ->setStorageRequired(FALSE)
+    ->setInternal(TRUE)
+    ->setTranslatable(FALSE)
+    ->setRevisionable(FALSE);
+
+  $definition_update_manager->updateFieldableEntityType($entity_type, $field_storage_definitions);
 }

@@ -15,8 +15,9 @@ cart_block:
     js/commerce_cart.js: {}
   dependencies:
     - core/jquery
-    - core/jquery.once
+    - core/once
     - core/drupal
+    - core/drupal.form
 
 cart_form:
   version: VERSION
@@ -24,5 +25,6 @@ cart_form:
     js/commerce_cart.form.js: {}
   dependencies:
     - core/jquery
-    - core/jquery.once
+    - core/once
     - core/drupal
+    - core/drupal.form

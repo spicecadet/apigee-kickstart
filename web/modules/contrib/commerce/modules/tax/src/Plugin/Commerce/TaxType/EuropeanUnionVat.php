@@ -48,13 +48,19 @@ class EuropeanUnionVat extends LocalTaxTypeBase {
     }
     $order = $order_item->getOrder();
     $store = $order->getStore();
-    $store_address = $store->getAddress();
-    $store_country = $store_address->getCountryCode();
-    $store_zones = $this->getMatchingZones($store_address);
     $store_registration_zones = array_filter($zones, function ($zone) use ($store) {
       /** @var \Drupal\commerce_tax\TaxZone $zone */
       return $this->checkRegistrations($store, $zone);
     });
+
+    // The store is not registered to collect taxes in the EU, stop here.
+    if (empty($store_registration_zones)) {
+      return [];
+    }
+
+    $store_address = $store->getAddress();
+    $store_country = $store_address->getCountryCode();
+    $store_zones = $this->getMatchingZones($store_address);
 
     $customer_tax_number = '';
     if (!$customer_profile->get('tax_number')->isEmpty()) {
@@ -70,7 +76,7 @@ class EuropeanUnionVat extends LocalTaxTypeBase {
     $taxable_type = $this->getTaxableType($order_item);
     $year = $order->getCalculationDate()->format('Y');
     $is_digital = $taxable_type == TaxableType::DIGITAL_GOODS && $year >= 2015;
-    if (empty($store_zones) && !empty($store_registration_zones)) {
+    if (empty($store_zones)) {
       // The store is not in the EU but is registered to collect VAT for
       // digital goods.
       $resolved_zones = [];
@@ -91,9 +97,23 @@ class EuropeanUnionVat extends LocalTaxTypeBase {
       // when the total yearly transactions breach the defined threshold.
       // See http://www.vatlive.com/eu-vat-rules/vat-registration-threshold/
       $resolved_zones = $store_zones;
-      $customer_zone = reset($customer_zones);
-      if ($this->checkRegistrations($store, $customer_zone)) {
-        $resolved_zones = $customer_zones;
+
+      // Check if the store is registered to pay taxes in the destination zone.
+      $store_registration_countries = array_column($store->get('tax_registrations')->getValue(), 'value');
+      $store_registration_countries = array_combine($store_registration_countries, $store_registration_countries);
+      foreach ($customer_zones as $zone) {
+        [$zone_country_code] = explode('_', $zone->getId());
+        $zone_country_code = strtoupper($zone_country_code);
+        // Skip territories that are not in a country where the store is
+        // registered.
+        if (!isset($store_registration_countries[$zone_country_code])) {
+          continue;
+        }
+        foreach ($zone->getTerritories() as $territory) {
+          if ($territory->match($customer_address)) {
+            return $customer_zones;
+          }
+        }
       }
     }
 
@@ -682,6 +702,7 @@ class EuropeanUnionVat extends LocalTaxTypeBase {
           'label' => $labels['second_reduced'],
           'percentages' => [
             ['number' => '0.09', 'start_date' => '2011-07-01', 'end_date' => '2018-12-31'],
+            ['number' => '0.09', 'start_date' => '2020-11-01', 'end_date' => '2023-02-28'],
           ],
         ],
         [
@@ -706,7 +727,7 @@ class EuropeanUnionVat extends LocalTaxTypeBase {
       'display_label' => $labels['vat'],
       'territories' => [
         // Italy without Livigno, Campione d’Italia and Lake Lugano.
-        ['country_code' => 'IT', 'excluded_postal_codes' => '23030, 22060'],
+        ['country_code' => 'IT', 'excluded_postal_codes' => '23041, 22061'],
       ],
       'rates' => [
         [
@@ -979,7 +1000,7 @@ class EuropeanUnionVat extends LocalTaxTypeBase {
           'id' => 'intermediate',
           'label' => $labels['intermediate'],
           'percentages' => [
-            ['number' => '0.9', 'start_date' => '2012-04-01'],
+            ['number' => '0.09', 'start_date' => '2012-04-01'],
           ],
         ],
         [

@@ -24,11 +24,18 @@ class OrderIntegrationTest extends OrderKernelTestBase {
   protected $order;
 
   /**
+   * The tax type.
+   *
+   * @var \Drupal\commerce_tax\Entity\TaxTypeInterface
+   */
+  protected $taxType;
+
+  /**
    * Modules to enable.
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'commerce_tax',
     'commerce_tax_test',
   ];
@@ -43,10 +50,11 @@ class OrderIntegrationTest extends OrderKernelTestBase {
     $user = $this->createUser(['mail' => $this->randomString() . '@example.com']);
 
     $this->store->set('prices_include_tax', TRUE);
+    $this->store->set('tax_registrations', ['US']);
     $this->store->save();
 
     // The default store is US-WI, so imagine that the US has VAT.
-    TaxType::create([
+    $tax_type = TaxType::create([
       'id' => 'us_vat',
       'label' => 'US VAT',
       'plugin' => 'custom',
@@ -64,7 +72,9 @@ class OrderIntegrationTest extends OrderKernelTestBase {
           ['country_code' => 'US', 'administrative_area' => 'SC'],
         ],
       ],
-    ])->save();
+    ]);
+    $tax_type->save();
+    $this->taxType = $this->reloadEntity($tax_type);
 
     $order = Order::create([
       'type' => 'default',
@@ -98,6 +108,37 @@ class OrderIntegrationTest extends OrderKernelTestBase {
     $this->assertCount(1, $adjustments);
     $this->assertEquals(new Price('2.00', 'USD'), $adjustment->getAmount());
     $this->assertEquals('us_vat|default|standard', $adjustment->getSourceId());
+  }
+
+  /**
+   * Tests that the tax type conditions are being evaluated.
+   */
+  public function testApplies() {
+    $this->taxType->set('conditions', [
+      [
+        'plugin' => 'order_email',
+        'configuration' => [
+          'mail' => 'foo@foo.com',
+        ],
+      ],
+    ]);
+    $this->taxType->save();
+    $order_item = OrderItem::create([
+      'type' => 'test',
+      'quantity' => '1',
+      'unit_price' => new Price('12.00', 'USD'),
+    ]);
+    $order_item->save();
+    $this->order->addItem($order_item);
+    $this->order->save();
+
+    $adjustments = $this->order->collectAdjustments();
+    $this->assertCount(0, $adjustments);
+
+    $this->taxType->set('conditions', [])->save();
+    $this->order->save();
+    $adjustments = $this->order->collectAdjustments();
+    $this->assertCount(1, $adjustments);
   }
 
   /**

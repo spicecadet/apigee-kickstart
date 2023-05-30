@@ -50,7 +50,7 @@ use Drupal\Core\Session\AccountProxyInterface;
  *   ),
  *   handlers = {
  *     "storage"             = "Drupal\apigee_m10n\Entity\Storage\PurchasedProductStorage",
- *     "access"              = "Drupal\entity\UncacheableEntityAccessControlHandler",
+ *     "access"              = "Drupal\apigee_m10n\Entity\Access\PurchasedProductUpdateAccessControlHandler",
  *     "permission_provider" = "Drupal\apigee_m10n\Entity\Permissions\PurchasedProductPermissionProvider",
  *     "list_builder"        = "Drupal\apigee_m10n\Entity\ListBuilder\PurchasedProductListBuilder",
  *     "form" = {
@@ -157,6 +157,9 @@ class PurchasedProduct extends FieldableEdgeEntityBase implements PurchasedProdu
     foreach ($read_only_fields as $field_name) {
       $definitions[$field_name]->setDisplayConfigurable('form', FALSE);
     }
+
+    // Set the target_type for ratePlan base field.
+    $definitions['ratePlan']->setSetting('target_type', 'rate_plan');
 
     return $definitions;
   }
@@ -321,6 +324,7 @@ class PurchasedProduct extends FieldableEdgeEntityBase implements PurchasedProdu
       $owner = $this->entityTypeManager()->getStorage('user')->loadByProperties([
         'mail' => $currentUserEmailId,
       ]);
+
       $this->owner = !empty($owner) ? reset($owner) : NULL;
     }
     return $this->owner;

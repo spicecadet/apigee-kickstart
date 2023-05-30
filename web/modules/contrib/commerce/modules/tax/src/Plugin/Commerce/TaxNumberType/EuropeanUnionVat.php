@@ -112,7 +112,7 @@ class EuropeanUnionVat extends TaxNumberTypeWithVerificationBase {
       $element['error'] = [
         '#type' => 'item',
         '#title' => $this->t('Error'),
-        '#plain_text' => isset($errors[$error]) ? $errors[$error] : $error,
+        '#plain_text' => $errors[$error] ?? $error,
       ];
     }
     if (isset($data['name'])) {

@@ -3,10 +3,8 @@
 namespace Drupal\smtp\ConnectionTester;
 
 use Drupal\Core\Config\ConfigFactory;
-use Drupal\Core\Mail\MailManager;
 use Drupal\Core\Mail\MailManagerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
-use Drupal\mailsystem\MailsystemManager;
 use PHPMailer\PHPMailer\Exception as PHPMailerException;
 use PHPMailer\PHPMailer\PHPMailer;
 use Psr\Log\LoggerInterface;
@@ -127,7 +125,7 @@ class ConnectionTester {
         $this->value = $this->t('SMTP module is enabled, turned on, and connection is valid.');
         return TRUE;
       }
-      $this->severity = REQUIREMENT_ERROR;
+      $this->severity = self::REQUIREMENT_ERROR;
       $this->value = $this->t('SMTP module is enabled, turned on, but SmtpConnect() returned FALSE.');
       return FALSE;
     }

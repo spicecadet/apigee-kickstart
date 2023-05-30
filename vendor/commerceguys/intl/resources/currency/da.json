@@ -52,6 +52,9 @@
 	"BTN": {
 		"name": "bhutansk ngultrum"
 	},
+	"VED": {
+		"name": "Bolívar Soberano"
+	},
 	"BOB": {
 		"name": "boliviansk boliviano"
 	},
@@ -232,9 +235,6 @@
 	"KGS": {
 		"name": "kirgisisk som"
 	},
-	"HRK": {
-		"name": "kroatisk kuna"
-	},
 	"KWD": {
 		"name": "kuwaitisk dinar"
 	},
@@ -242,7 +242,7 @@
 		"name": "laotisk kip"
 	},
 	"LSL": {
-		"name": "Lesothisk loti"
+		"name": "lesothisk loti"
 	},
 	"LBP": {
 		"name": "libanesisk pund"
@@ -388,6 +388,9 @@
 	},
 	"SCR": {
 		"name": "seychellisk rupee"
+	},
+	"SLE": {
+		"name": "Sierra Leonean Leone"
 	},
 	"SLL": {
 		"name": "sierraleonsk leone"

@@ -90,9 +90,12 @@ class UserDeveloperConverter implements UserDeveloperConverterInterface {
    */
   public function convertUser(UserInterface $user): UserToDeveloperConversionResult {
     $problems = [];
+    $developer = NULL;
     $successful_changes = 0;
     $email = isset($user->original) ? $user->original->getEmail() : $user->getEmail();
-    $developer = $this->entityTypeManager->getStorage('developer')->load($email);
+    if ($email) {
+      $developer = $this->entityTypeManager->getStorage('developer')->load($email);
+    }
     if (!$developer) {
       /** @var \Drupal\apigee_edge\Entity\DeveloperInterface $developer */
       $developer = $this->entityTypeManager->getStorage('developer')->create([]);
@@ -106,7 +109,7 @@ class UserDeveloperConverter implements UserDeveloperConverterInterface {
 
       // Default value for firstname lastname if null.
       if ($user->get($base_field)->value === NULL && ($base_field === "first_name" || $base_field === "last_name")) {
-        $base_field_value = $developer->{$getter}() !== NULL ? $developer->{$getter}() : ucfirst($developer_prop);
+        $base_field_value = $developer->{$getter}() ?? ucfirst($developer_prop);
         $user->set($base_field, $base_field_value);
       }
 
@@ -177,7 +180,7 @@ class UserDeveloperConverter implements UserDeveloperConverterInterface {
     if (!$user) {
       // Initialize new user object with minimum data.
       $user = $user_storage->create([
-        'pass' => user_password(),
+        'pass' => \Drupal::service('password_generator')->generate(),
       ]);
       // Suppress invalid email validation errors.
       DeveloperEmailUniqueValidator::whitelist($developer->id());

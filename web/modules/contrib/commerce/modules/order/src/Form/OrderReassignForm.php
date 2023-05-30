@@ -31,13 +31,6 @@ class OrderReassignForm extends FormBase {
   protected $orderAssignment;
 
   /**
-   * The user storage.
-   *
-   * @var \Drupal\Core\Entity\EntityStorageInterface
-   */
-  protected $userStorage;
-
-  /**
    * Constructs a new OrderReassignForm object.
    *
    * @param \Drupal\Core\Routing\CurrentRouteMatch $current_route_match
@@ -118,6 +111,13 @@ class OrderReassignForm extends FormBase {
   /**
    * {@inheritdoc}
    */
+  public function validateForm(array &$form, FormStateInterface $form_state) {
+    $this->validateCustomerForm($form, $form_state);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $this->submitCustomerForm($form, $form_state);
 
@@ -125,7 +125,7 @@ class OrderReassignForm extends FormBase {
     /** @var \Drupal\user\UserInterface $user */
     $user = $this->userStorage->load($values['uid']);
     $this->orderAssignment->assign($this->order, $user);
-    $this->messenger()->addMessage($this->t('The order %label has been assigned to customer %customer.', [
+    $this->messenger()->addMessage($this->t('The %label has been assigned to customer %customer.', [
       '%label' => $this->order->label(),
       '%customer' => $this->order->getCustomer()->label(),
     ]));

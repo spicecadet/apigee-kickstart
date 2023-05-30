@@ -38,9 +38,6 @@
 	"MMK": {
 		"name": "គីយ៉ាត​ភូមា"
 	},
-	"HRK": {
-		"name": "គូណា​ក្រូអាត"
-	},
 	"HTG": {
 		"name": "គោឌី​ហៃទី"
 	},
@@ -467,6 +464,10 @@
 	"GEL": {
 		"name": "ឡារី​​ហ្សកហ្ស៊ី"
 	},
+	"LSL": {
+		"name": "ឡូទីឡេសូតូ",
+		"symbol": "ឡូទី"
+	},
 	"MGA": {
 		"name": "អារៀរី​ម៉ាឡាហ្គាស៊ី"
 	},
@@ -483,11 +484,14 @@
 	"MRU": {
 		"name": "អ៊ូហ្គីយ៉ា​ម៉ូរីតានី"
 	},
-	"LSL": {
-		"name": "Lesotho Loti"
+	"VED": {
+		"name": "Bolívar Soberano"
 	},
 	"SVC": {
 		"name": "Salvadoran Colón"
+	},
+	"SLE": {
+		"name": "Sierra Leonean Leone"
 	},
 	"UYW": {
 		"name": "Uruguayan Nominal Wage Index Unit"

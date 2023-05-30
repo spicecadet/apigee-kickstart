@@ -1,8 +1,26 @@
 {
     "name": "league/period",
     "type": "library",
-    "description" : "A time range immutable value object",
-    "keywords": ["date", "time", "datetime", "range", "interval", "dateinterval", "dateperiod"],
+    "description" : "Time range API for PHP",
+    "keywords": [
+        "date",
+        "time",
+        "timeline",
+        "datetime",
+        "range",
+        "interval",
+        "dateinterval",
+        "dateperiod",
+        "calendar",
+        "schedule",
+        "boundaries",
+        "sequence",
+        "collection",
+        "period",
+        "gap",
+        "intersections",
+        "unions"
+    ],
     "license": "MIT",
     "homepage": "http://period.thephpleague.com",
     "authors": [
@@ -14,33 +32,50 @@
         }
     ],
     "support": {
-        "forum": "https://groups.google.com/forum/#!forum/thephpleague",
-        "issues": "https://github.com/thephpleague/period/issues"
+        "docs": "https://period.thephpleague.com",
+        "issues": "https://github.com/thephpleague/period/issues",
+        "source": "https://github.com/thephpleague/period"
     },
+    "funding": [
+        {
+            "type": "github",
+            "url": "https://github.com/sponsors/nyamsprod"
+        }
+    ],
     "require": {
-        "php" : ">=5.5.9"
+        "php" : "^7.2.0 || ^8.0",
+        "ext-json": "*"
     },
     "require-dev": {
-        "phpunit/phpunit" : "^4.0",
-        "friendsofphp/php-cs-fixer": "^1.10"
+        "friendsofphp/php-cs-fixer": "^v2.19 || ~v3.4.0",
+        "phpunit/phpunit" : "^8.0 || ^9.0",
+        "phpstan/phpstan": "^1.0.0",
+        "phpstan/phpstan-strict-rules": "^1.0.0",
+        "phpstan/phpstan-phpunit": "^1.0.0"
     },
     "autoload": {
         "psr-4": {
             "League\\Period\\": "src"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "League\\Period\\Test\\": "test"
-        }
+        },
+        "files": ["src/functions_include.php"]
     },
     "scripts": {
-        "test": "phpunit --coverage-text;",
-        "phpunit": "phpunit --coverage-text"
+        "phpcs": "php-cs-fixer fix --dry-run --diff -vvv --allow-risky=yes --ansi",
+        "phpcs:fix": "php-cs-fixer fix -vvv --allow-risky=yes --ansi",
+        "phpstan": "phpstan analyse -l max -c phpstan.neon src --ansi --memory-limit 256M",
+        "phpunit": "phpunit --coverage-text",
+        "test": [
+            "@phpunit",
+            "@phpstan",
+            "@phpcs"
+        ]
     },
     "extra": {
         "branch-alias": {
-            "dev-master": "3.2-dev"
+            "dev-master": "4.x-dev"
         }
+    },
+    "config": {
+        "sort-packages": true
     }
 }

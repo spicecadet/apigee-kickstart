@@ -58,7 +58,7 @@ class PriceCalculatorTest extends OrderKernelTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'commerce_promotion',
     'commerce_tax',
     'commerce_order_test',
@@ -73,6 +73,8 @@ class PriceCalculatorTest extends OrderKernelTestBase {
     $this->installEntitySchema('commerce_promotion');
     $this->installSchema('commerce_promotion', ['commerce_promotion_usage']);
 
+    $this->store->set('tax_registrations', ['US']);
+    $this->store->save();
     $promotion = Promotion::create([
       'name' => 'Promotion 1',
       'order_types' => ['default'],

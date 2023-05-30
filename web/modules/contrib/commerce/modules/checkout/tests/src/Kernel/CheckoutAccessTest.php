@@ -7,10 +7,10 @@ use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_product\Entity\Product;
 use Drupal\commerce_product\Entity\ProductVariation;
 use Drupal\commerce_store\StoreCreationTrait;
+use Drupal\Core\Routing\RouteObjectInterface;
 use Drupal\Core\Url;
 use Drupal\Tests\commerce_cart\Kernel\CartKernelTestBase;
 use Drupal\user\UserInterface;
-use Symfony\Cmf\Component\Routing\RouteObjectInterface;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -55,7 +55,7 @@ class CheckoutAccessTest extends CartKernelTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'commerce_checkout',
   ];
 

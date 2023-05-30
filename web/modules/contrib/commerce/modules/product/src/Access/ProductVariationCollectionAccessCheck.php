@@ -50,19 +50,25 @@ class ProductVariationCollectionAccessCheck implements AccessInterface {
   public function access(Route $route, RouteMatchInterface $route_match, AccountInterface $account) {
     /** @var \Drupal\commerce_product\Entity\ProductInterface $product */
     $product = $route_match->getParameter('commerce_product');
+    $product_type_storage = $this->entityTypeManager->getStorage('commerce_product_type');
+
     if (!$product) {
       return AccessResult::forbidden();
     }
-    $product_type_storage = $this->entityTypeManager->getStorage('commerce_product_type');
+
     /** @var \Drupal\commerce_product\Entity\ProductTypeInterface $product_type */
     $product_type = $product_type_storage->load($product->bundle());
+    if (!$product_type) {
+      return AccessResult::forbidden();
+    }
+
     if (!$product_type->allowsMultipleVariations()) {
       // Product types that don't allow multiple variations do not need
       // a product variation collection route.
       return AccessResult::forbidden()->addCacheableDependency($product_type);
     }
 
-    $variation_type_id = $product_type->getVariationTypeId();
+    $variation_type_ids = $product_type->getVariationTypeIds();
     // The collection route can be accessed by users with the administer
     // or manage permissions, because those permissions grant full access
     // to variations (add/edit/delete). The route can also be accessed by
@@ -71,8 +77,10 @@ class ProductVariationCollectionAccessCheck implements AccessInterface {
     $permissions = [
       'administer commerce_product',
       'access commerce_product overview',
-      "manage $variation_type_id commerce_product_variation",
     ];
+    foreach ($variation_type_ids as $variation_type_id) {
+      $permissions[] = "manage $variation_type_id commerce_product_variation";
+    }
 
     return AccessResult::allowedIfHasPermissions($account, $permissions, 'OR');
   }

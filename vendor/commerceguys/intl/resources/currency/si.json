@@ -121,9 +121,6 @@
 	"CRC": {
 		"name": "කොස්ට රිකා කොලෝන්"
 	},
-	"HRK": {
-		"name": "ක්‍රොඒෂියානු කූනා"
-	},
 	"GYD": {
 		"name": "ගයනා ඩොලර්"
 	},
@@ -391,6 +388,9 @@
 	"LBP": {
 		"name": "ලෙබනන පවුම්"
 	},
+	"LSL": {
+		"name": "ලෙසෝතෝ ලොටි"
+	},
 	"VUV": {
 		"name": "වනුවාටු වාටු"
 	},
@@ -483,11 +483,14 @@
 	"FKP": {
 		"name": "ෆෝක්ලන්ඩ් දූපත් පවුම්"
 	},
-	"LSL": {
-		"name": "Lesotho Loti"
+	"VED": {
+		"name": "Bolívar Soberano"
 	},
 	"SVC": {
 		"name": "Salvadoran Colón"
+	},
+	"SLE": {
+		"name": "Sierra Leonean Leone"
 	},
 	"UYW": {
 		"name": "Uruguayan Nominal Wage Index Unit"

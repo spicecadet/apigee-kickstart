@@ -84,21 +84,34 @@ class RatePlanAccessControlHandler extends EntityAccessControlHandlerBase implem
     // does not belong to rate_plan category.
     /** @var \Drupal\apigee_edge\Entity\DeveloperInterface $developer */
     if ($rate_plan instanceof DeveloperCategoryRatePlanInterface) {
-      if (($category = $rate_plan->getDeveloperCategory()) && ($developer = $this->entityTypeManager->getStorage('developer')->load($account->getEmail()))) {
-        return AccessResult::allowedIf(($developer_category = $developer->decorated()->getAttributeValue('MINT_DEVELOPER_CATEGORY')) && ($category->id() === $developer_category))
-          ->andIf(AccessResult::allowedIfHasPermission($account, "$operation rate_plan"));
+      $category = $rate_plan->getDeveloperCategory();
+      if ($category === NULL) {
+        return AccessResult::forbidden("Missing developer category reference on {$rate_plan->id()} rate plan, {$operation} is not allowed.");
       }
-      return AccessResult::forbidden("User {$developer->getEmail()} missing required developer category.");
+      else {
+        $developer = $this->entityTypeManager->getStorage('developer')->load($account->getEmail());
+        if ($developer) {
+          $developer_category = $developer->decorated()->getAttributeValue('MINT_DEVELOPER_CATEGORY') ?? '';
+          return AccessResult::allowedIf($category->id() === $developer_category)->andIf(AccessResult::allowedIfHasPermission($account, "$operation rate_plan"));
+        }
+        else {
+          // Should not happen.
+          return AccessResult::forbidden("Could not fetch developer information for {$account->getEmail()}.");
+        }
+      }
     }
 
     // If rate plan is a developer rate plan, and the assigned developer is
     // different from account, deny access.
     if ($rate_plan instanceof DeveloperRatePlanInterface) {
-      if ($developer = $rate_plan->getDeveloper()) {
+      $developer = $rate_plan->getDeveloper();
+      if ($developer) {
         return AccessResult::allowedIf($account->getEmail() === $developer->getEmail())
           ->andIf(AccessResult::allowedIfHasPermission($account, "$operation rate_plan"));
       }
-      return AccessResult::forbidden("User {$developer->getEmail()} cannot view developer rate plan.");
+      else {
+        return AccessResult::forbidden("Missing developer reference on {$rate_plan->id()} rate plan, {$operation} is not allowed.");
+      }
     }
 
     return $access->andIf(AccessResult::allowedIfHasPermission($account, "$operation rate_plan"));

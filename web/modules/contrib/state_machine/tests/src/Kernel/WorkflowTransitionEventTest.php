@@ -15,7 +15,7 @@ class WorkflowTransitionEventTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'entity_test',
     'field',
     'user',
@@ -26,7 +26,7 @@ class WorkflowTransitionEventTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installEntitySchema('user');
@@ -126,6 +126,30 @@ class WorkflowTransitionEventTest extends KernelTestBase {
     $this->assertEquals('Test entity (field_state) - Completed at generic pre-transition (workflow: two_transitions, transition: complete2).', (string) $message[1]);
     $this->assertEquals('Test entity (field_state) - Completed at group post-transition (workflow: two_transitions, transition: complete2).', (string) $message[2]);
     $this->assertEquals('Test entity (field_state) - Completed at generic post-transition (workflow: two_transitions, transition: complete2).', (string) $message[3]);
+  }
+
+  /**
+   * Tests the transition event when a state transition occurs to same value.
+   */
+  public function testTransitionEventSameState() {
+    $entity = EntityTestWithBundle::create([
+      'type' => 'fourth',
+      'name' => 'Test entity',
+      'field_state' => 'new',
+    ]);
+    $entity->save();
+
+    // Test that explicitly specifying the transition to same fires event.
+    $entity->get('field_state')->first()->applyTransitionById('same');
+    $entity->save();
+    $messages = \Drupal::messenger()->all();
+    $this->assertCount(4, $messages['status']);
+    \Drupal::messenger()->deleteAll();
+
+    // Test that simply setting the value to same as existing does not dispatch.
+    $entity->get('field_state')->first()->setValue('new');
+    $entity->save();
+    $this->assertEmpty(\Drupal::messenger()->all());
   }
 
 }

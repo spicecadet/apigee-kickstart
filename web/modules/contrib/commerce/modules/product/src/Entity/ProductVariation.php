@@ -77,7 +77,8 @@ use Symfony\Component\Routing\Exception\RouteNotFoundException;
  *     "uid" = "uid",
  *   },
  *   links = {
- *     "add-form" = "/product/{commerce_product}/variations/add",
+ *     "add-page" = "/product/{commerce_product}/variations/add",
+ *     "add-form" = "/product/{commerce_product}/variations/add/{commerce_product_variation_type}",
  *     "edit-form" = "/product/{commerce_product}/variations/{commerce_product_variation}/edit",
  *     "duplicate-form" = "/product/{commerce_product}/variations/{commerce_product_variation}/duplicate",
  *     "delete-form" = "/product/{commerce_product}/variations/{commerce_product_variation}/delete",
@@ -360,7 +361,6 @@ class ProductVariation extends CommerceContentEntityBase implements ProductVaria
     // Invalidate the variations view builder and product caches.
     return Cache::mergeTags($tags, [
       'commerce_product:' . $this->getProductId(),
-      'commerce_product_variation_view',
     ]);
   }
 
@@ -419,12 +419,13 @@ class ProductVariation extends CommerceContentEntityBase implements ProductVaria
    *   The generated value.
    */
   protected function generateTitle() {
-    if (!$this->getProductId()) {
+    $product = $this->getProduct();
+    if (!$product) {
       // Title generation is not possible before the parent product is known.
       return '';
     }
 
-    $product_title = $this->getProduct()->getTitle();
+    $product_title = $product->getTitle();
     if ($attribute_values = $this->getAttributeValues()) {
       $attribute_labels = EntityHelper::extractLabels($attribute_values);
       $title = $product_title . ' - ' . implode(', ', $attribute_labels);

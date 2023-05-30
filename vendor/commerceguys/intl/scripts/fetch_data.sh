@@ -1,12 +1,12 @@
 #!/bin/sh
 
-URL="https://www.currency-iso.org/dam/downloads/lists/list_one.xml"
+URL="https://www.six-group.com/dam/download/financial-information/data-center/iso-currrency/lists/list-one.xml"
 
 rm -fR assets
 mkdir assets
 cd assets
 
-git clone https://github.com/unicode-org/cldr-json.git cldr
+git clone --depth 1 https://github.com/unicode-org/cldr-json.git cldr
 
 if command -v wget >/dev/null 2>&1;
 then

@@ -3,8 +3,6 @@
 namespace Drupal\Tests\file_link\Kernel;
 
 use Drupal\Core\Site\Settings;
-use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\Core\Url;
 use Drupal\entity_test\Entity\EntityTest;
 use Drupal\file_link_test\HttpMiddleware;
 use Drupal\KernelTests\KernelTestBase;
@@ -32,7 +30,7 @@ class FileLinkMultiValueTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installConfig(['file_link_test']);

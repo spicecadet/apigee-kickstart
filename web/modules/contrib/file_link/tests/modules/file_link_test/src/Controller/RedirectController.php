@@ -28,7 +28,7 @@ class RedirectController extends ControllerBase {
    *   An absolute URL.
    */
   protected static function getFullUrl($path) {
-    return Url::fromUri('base:/' . drupal_get_path('module', 'file_link_test') . $path, ['absolute' => TRUE])->toString();
+    return Url::fromUri('base:/' . \Drupal::service('extension.list.module')->getPath('file_link_test') . $path, ['absolute' => TRUE])->toString();
   }
 
 }

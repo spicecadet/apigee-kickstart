@@ -34,7 +34,7 @@ class ProductAdminTest extends ProductBrowserTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'file',
     'image',
   ];
@@ -87,15 +87,16 @@ class ProductAdminTest extends ProductBrowserTestBase {
     }
     $this->submitForm($edit, 'Save');
 
-    $result = \Drupal::entityQuery('commerce_product')
+    $result = \Drupal::entityTypeManager()->getStorage('commerce_product')->getQuery()
       ->condition("title", $edit['title[0][value]'])
+      ->accessCheck(FALSE)
       ->range(0, 1)
       ->execute();
     $product_id = reset($result);
     $product = Product::load($product_id);
 
     $this->assertNotNull($product, 'The new product has been created.');
-    $this->assertSession()->pageTextContains(t('The product @title has been successfully saved', ['@title' => $title]));
+    $this->assertSession()->pageTextContains($this->t('The product @title has been successfully saved', ['@title' => $title]));
     $this->assertSession()->pageTextContains($title);
     $this->assertFieldValues($product->getStores(), $this->stores, 'Created product has the correct associated stores.');
     $this->assertFieldValues($product->getStoreIds(), $store_ids, 'Created product has the correct associated store ids.');
@@ -109,6 +110,7 @@ class ProductAdminTest extends ProductBrowserTestBase {
    */
   public function testEditProduct() {
     $product = $this->createEntity('commerce_product', [
+      'title' => $this->randomString(),
       'type' => 'default',
     ]);
 
@@ -143,8 +145,8 @@ class ProductAdminTest extends ProductBrowserTestBase {
       'type' => 'default',
     ]);
     $this->drupalGet($product->toUrl('delete-form'));
-    $this->assertSession()->pageTextContains(t("Are you sure you want to delete the product @product?", ['@product' => $product->getTitle()]));
-    $this->assertSession()->pageTextContains(t('This action cannot be undone.'));
+    $this->assertSession()->pageTextContains($this->t("Are you sure you want to delete the product @product?", ['@product' => $product->getTitle()]));
+    $this->assertSession()->pageTextContains($this->t('This action cannot be undone.'));
     $this->submitForm([], 'Delete');
 
     $this->container->get('entity_type.manager')->getStorage('commerce_product')->resetCache();
@@ -307,8 +309,8 @@ class ProductAdminTest extends ProductBrowserTestBase {
     }
     $this->submitForm($edit, 'Save and add variations');
 
-    $this->assertSession()->pageTextContains(t('The product @title has been successfully saved', ['@title' => $title]));
-    $this->assertSession()->pageTextContains(t('There are no product variations yet.'));
+    $this->assertSession()->pageTextContains($this->t('The product @title has been successfully saved', ['@title' => $title]));
+    $this->assertSession()->pageTextContains($this->t('There are no product variations yet.'));
     $this->getSession()->getPage()->clickLink('Add variation');
 
     // Create a variation.
@@ -343,6 +345,7 @@ class ProductAdminTest extends ProductBrowserTestBase {
    */
   public function testEditVariation() {
     $product = $this->createEntity('commerce_product', [
+      'title' => $this->randomString(),
       'type' => 'default',
     ]);
     $variation = $this->createEntity('commerce_product_variation', [
@@ -380,6 +383,7 @@ class ProductAdminTest extends ProductBrowserTestBase {
   public function testDuplicateVariation() {
     $sku = strtolower($this->randomMachineName());
     $product = $this->createEntity('commerce_product', [
+      'title' => $this->randomString(),
       'type' => 'default',
     ]);
     $variation = $this->createEntity('commerce_product_variation', [
@@ -434,10 +438,10 @@ class ProductAdminTest extends ProductBrowserTestBase {
     ]);
 
     $this->drupalGet($variation->toUrl('delete-form'));
-    $this->assertSession()->pageTextContains(t("Are you sure you want to delete the @variation variation?", [
+    $this->assertSession()->pageTextContains($this->t("Are you sure you want to delete the @variation variation?", [
       '@variation' => $variation->label(),
     ]));
-    $this->assertSession()->pageTextContains(t('This action cannot be undone.'));
+    $this->assertSession()->pageTextContains($this->t('This action cannot be undone.'));
     $this->submitForm([], 'Delete');
     $this->assertSession()->addressEquals($variation->toUrl('collection'));
 

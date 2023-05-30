@@ -37,11 +37,20 @@ class PrepaidBalanceController extends PrepaidBalanceControllerBase {
    *   Gets a redirect to the users's balance page.
    */
   public function myRedirect(): RedirectResponse {
-    return $this->redirect(
-      'apigee_monetization.billing',
-      ['user' => $this->currentUser->id()],
-      ['absolute' => TRUE]
-    );
+    if ($this->monetization->isOrganizationApigeeXorHybrid()) {
+      return $this->redirect(
+        'apigee_monetization.xbilling',
+        ['user' => $this->currentUser->id()],
+        ['absolute' => TRUE]
+      );
+    }
+    else {
+      return $this->redirect(
+        'apigee_monetization.billing',
+        ['user' => $this->currentUser->id()],
+        ['absolute' => TRUE]
+      );
+    }
   }
 
   /**
@@ -61,8 +70,9 @@ class PrepaidBalanceController extends PrepaidBalanceControllerBase {
     if (!$this->monetization->isDeveloperPrepaid($user)) {
       return AccessResult::forbidden('Developer is not prepaid.');
     }
+
     if ($this->monetization->isOrganizationApigeeXorHybrid()) {
-      return AccessResult::forbidden('ApigeeX Developer is not prepaid.');
+      return AccessResult::forbidden('Not accessible for ApigeeX organization');
     }
     return AccessResult::allowedIf(
       $account->hasPermission('view any prepaid balance') ||

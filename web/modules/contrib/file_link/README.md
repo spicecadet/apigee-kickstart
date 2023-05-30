@@ -1,8 +1,9 @@
 # File Link
 
-This module provides a field that extends the core Link module field by storing metadata about the target file like size
-and mime-type. The link URI must point to file not to a directory. The site builder can define a list of allowed target
-file extensions.
+This module provides a field that extends the core Link module field by storing
+metadata about the target file like size and mime-type. The link URI must point
+to file not to a directory. The site builder can define a list of allowed
+target file extensions.
 
 # Dependencies
 
@@ -50,13 +51,15 @@ Run tests:
 $ docker-compose exec php ./vendor/bin/phpunit
 ```
 
-You can disable HTTP redirect following on field validation by setting the following in you `settings.php`:
+You can disable HTTP redirect following on field validation by setting the
+following in you `settings.php`:
 
 ```
 $settings['file_link.follow_redirect_on_validate'] = FALSE;
 ```
 
-To completely disable performing HTTP requests when validating or saving a field, set the following:
+To completely disable performing HTTP requests when validating or saving a
+field, set the following:
 
 ```
 $settings['file_link.disable_http_requests'] = TRUE;

@@ -45,7 +45,7 @@ class Store extends EntityField {
    */
   public function access(AccountInterface $account) {
     $store_query = $this->entityTypeManager->getStorage('commerce_store')->getQuery();
-    $store_count = $store_query->count()->execute();
+    $store_count = $store_query->count()->accessCheck(TRUE)->execute();
     if ($this->options['hide_single_store'] && $store_count <= 1) {
       return FALSE;
     }
